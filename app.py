@@ -2,8 +2,11 @@
 Stock Technical Analysis Web App
 =================================
 A friendly, dark-mode Streamlit app for non-technical users.
-Shows candlesticks + SMA50, OBV+MA, and a TTM-Squeeze-style momentum
-oscillator with squeeze detection and signal annotations.
+Chart mode shows candlesticks + SMA50, OBV+MA, and a TTM-Squeeze-style
+momentum oscillator with squeeze detection and signal annotations.
+Signals mode scans a watchlist for buy signals (price drawdown vs.
+options put-wall support) and monitors an open position for sell
+signals (stop-loss / take-profit vs. options call-wall resistance).
 
 Run with:  streamlit run app.py
 """
@@ -14,6 +17,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from datetime import datetime
 
 # ----------------------------------------------------------------------
 # PAGE CONFIG
@@ -58,6 +62,55 @@ TXT = {
         "decel": "🛑Deceleration",
         "breakout": "💥Breakout",
         "golden_cross": "OBV Golden Cross",
+        # --- mode toggle ---
+        "to_signals_btn": "📡 Buy/Sell Signals",
+        "to_chart_btn": "📈 Back to Chart",
+        # --- signals page ---
+        "signal_title": "📡 Buy/Sell Signal Scanner",
+        "signal_subtitle": "Rule-based signals from price drawdown and options positioning.",
+        "signal_disclaimer": "⚠️ This is an automated heuristic tool, not financial advice. Always do your own research before buying or selling.",
+        "buy_section_title": "Buy Signal Scanner",
+        "buy_section_desc": "Enter one or more stock symbols to check if now looks like a good time to consider buying.",
+        "watchlist_label": "Stock Symbols (comma-separated)",
+        "scan_button": "🔍 Scan",
+        "sell_section_title": "Sell / Take-Profit Monitor",
+        "sell_section_desc": "Track a position you already own and see if it's time to sell.",
+        "sell_ticker_label": "Stock Symbol",
+        "entry_price_label": "Your Buy Price ($)",
+        "take_profit_label": "Take-Profit Target (%)",
+        "stop_loss_label": "Stop-Loss Limit (%)",
+        "check_button": "✅ Check",
+        "current_price_label": "Current Price",
+        "drawdown_label": "Drop From 52-Week High",
+        "put_wall_label": "Support Level (Put Wall)",
+        "put_wall_oi_label": "Contracts at This Level",
+        "pcr_label": "Put/Call Ratio",
+        "expiration_label": "Options Expiration Used",
+        "call_wall_label": "Resistance Level (Call Wall)",
+        "pnl_label": "Current Profit/Loss",
+        "entry_price_display_label": "Your Buy Price",
+        "buy_verdict_signal_title": "🎯 High-Confidence Buy Signal",
+        "buy_verdict_signal_detail": "Down {drawdown:.1f}% from its high and trading near the support level (${wall:.2f}).",
+        "buy_verdict_broken_title": "⚠️ Support Broken — Wait",
+        "buy_verdict_broken_detail": "Price has fallen more than 10% below the support level (${wall:.2f}).",
+        "buy_verdict_wait_title": "⏳ Not Yet — Keep Watching",
+        "buy_verdict_wait_detail": "Price is down a lot, but hasn't reached the support level (~${wall:.2f}) yet.",
+        "buy_verdict_none_title": "❌ Not Oversold",
+        "buy_verdict_none_detail": "Only down {drawdown:.1f}% from its high (this tool looks for -25% or more).",
+        "sell_verdict_stoploss_title": "🚨 Stop-Loss Triggered",
+        "sell_verdict_stoploss_detail": "Loss of {pnl:.1f}% has hit your stop-loss limit ({limit:.1f}%). Consider selling.",
+        "sell_verdict_break_title": "🚨 Support Broken — Stop-Loss",
+        "sell_verdict_break_detail": "Price has fallen more than 5% below the support level (${wall_put:.2f}).",
+        "sell_verdict_resistance_title": "🎉 Near Resistance — Take Profit",
+        "sell_verdict_resistance_detail": "Price is approaching the resistance level (${wall_call:.2f}). Consider selling part of your position.",
+        "sell_verdict_target_title": "🎉 Target Reached — Take Profit",
+        "sell_verdict_target_detail": "Gain of {pnl:.1f}% has hit your target ({target:.1f}%). Consider taking some profit.",
+        "sell_verdict_hold_title": "⏸️ Hold",
+        "sell_verdict_hold_detail": "No exit conditions met yet.",
+        "err_no_price": "Couldn't fetch price data for {ticker}.",
+        "err_no_options": "No options data available for {ticker}.",
+        "err_incomplete_chain": "Options chain data is incomplete for {ticker}.",
+        "err_generic": "Something went wrong fetching {ticker}: {error}",
     },
     "zh": {
         "title": "📈 股票图表助手",
@@ -88,24 +141,87 @@ TXT = {
         "decel": "🛑减速",
         "breakout": "💥突破",
         "golden_cross": "OBV 黄金交叉",
+        # --- mode toggle ---
+        "to_signals_btn": "📡 买卖信号",
+        "to_chart_btn": "📈 返回图表",
+        # --- signals page ---
+        "signal_title": "📡 买卖信号扫描器",
+        "signal_subtitle": "基于价格回撤和期权持仓的规则化信号。",
+        "signal_disclaimer": "⚠️ 这是一个自动化的启发式工具，不构成投资建议。做出买卖决定前请自行研究。",
+        "buy_section_title": "买入信号扫描",
+        "buy_section_desc": "输入一个或多个股票代码，查看现在是否适合考虑买入。",
+        "watchlist_label": "股票代码（用逗号分隔）",
+        "scan_button": "🔍 扫描",
+        "sell_section_title": "卖出 / 止盈监控",
+        "sell_section_desc": "追踪你已持有的仓位，查看是否该卖出了。",
+        "sell_ticker_label": "股票代码",
+        "entry_price_label": "买入价格 ($)",
+        "take_profit_label": "止盈目标 (%)",
+        "stop_loss_label": "止损限制 (%)",
+        "check_button": "✅ 检查",
+        "current_price_label": "当前价格",
+        "drawdown_label": "距52周高点跌幅",
+        "put_wall_label": "支撑位（Put 防守墙）",
+        "put_wall_oi_label": "该价位持仓量",
+        "pcr_label": "认沽/认购比率 (PCR)",
+        "expiration_label": "所用期权到期日",
+        "call_wall_label": "阻力位（Call 阻力墙）",
+        "pnl_label": "当前盈亏",
+        "entry_price_display_label": "买入价格",
+        "buy_verdict_signal_title": "🎯 高置信度买入信号",
+        "buy_verdict_signal_detail": "较高点已下跌 {drawdown:.1f}%，且接近支撑位 (${wall:.2f})。",
+        "buy_verdict_broken_title": "⚠️ 支撑位已破位 — 观望",
+        "buy_verdict_broken_detail": "价格已跌破支撑位 (${wall:.2f}) 10% 以上。",
+        "buy_verdict_wait_title": "⏳ 尚未到位 — 继续观察",
+        "buy_verdict_wait_detail": "价格已大幅下跌，但尚未到达支撑位（约 ${wall:.2f}）。",
+        "buy_verdict_none_title": "❌ 未达超跌条件",
+        "buy_verdict_none_detail": "较高点仅下跌 {drawdown:.1f}%（本工具寻找 -25% 或以上）。",
+        "sell_verdict_stoploss_title": "🚨 触发固定止损",
+        "sell_verdict_stoploss_detail": "亏损 {pnl:.1f}% 已触及止损限制 ({limit:.1f}%)，建议卖出。",
+        "sell_verdict_break_title": "🚨 支撑位破位 — 止损",
+        "sell_verdict_break_detail": "价格已跌破支撑位 (${wall_put:.2f}) 5% 以上。",
+        "sell_verdict_resistance_title": "🎉 接近阻力位 — 止盈",
+        "sell_verdict_resistance_detail": "价格正接近阻力位 (${wall_call:.2f})，建议卖出部分仓位。",
+        "sell_verdict_target_title": "🎉 达到目标 — 止盈",
+        "sell_verdict_target_detail": "收益 {pnl:.1f}% 已达到目标 ({target:.1f}%)，建议获利了结部分仓位。",
+        "sell_verdict_hold_title": "⏸️ 继续持有",
+        "sell_verdict_hold_detail": "尚未触发任何卖出条件。",
+        "err_no_price": "无法获取 {ticker} 的价格数据。",
+        "err_no_options": "没有 {ticker} 的期权数据。",
+        "err_incomplete_chain": "{ticker} 的期权链数据不完整。",
+        "err_generic": "获取 {ticker} 时出错：{error}",
     },
 }
 
 PERIOD_OPTIONS = {"6M": "6mo", "1Y": "1y", "2Y": "2y"}
 
 # ----------------------------------------------------------------------
-# STATE / LANGUAGE TOGGLE
+# STATE
 # ----------------------------------------------------------------------
 if "lang" not in st.session_state:
     st.session_state.lang = "en"
-
-top_l, top_r = st.columns([5, 1])
-with top_r:
-    if st.button(TXT[st.session_state.lang]["lang_toggle"], use_container_width=True):
-        st.session_state.lang = "zh" if st.session_state.lang == "en" else "en"
-        st.rerun()
+if "mode" not in st.session_state:
+    st.session_state.mode = "chart"
+if "buy_results" not in st.session_state:
+    st.session_state.buy_results = []
+if "sell_result" not in st.session_state:
+    st.session_state.sell_result = None
 
 L = TXT[st.session_state.lang]
+
+# ----------------------------------------------------------------------
+# TOP CONTROLS: mode + language toggle
+# ----------------------------------------------------------------------
+top_l, top_mode, top_lang = st.columns([4, 1.6, 1.6])
+with top_mode:
+    mode_btn_label = L["to_signals_btn"] if st.session_state.mode == "chart" else L["to_chart_btn"]
+    if st.button(mode_btn_label, use_container_width=True):
+        st.session_state.mode = "signals" if st.session_state.mode == "chart" else "chart"
+        st.rerun()
+with top_lang:
+    if st.button(L["lang_toggle"], use_container_width=True):
+        st.session_state.lang = "zh" if st.session_state.lang == "en" else "en"
+        st.rerun()
 
 # ----------------------------------------------------------------------
 # DARK MODE STYLING
@@ -129,30 +245,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(f"<div class='big-title'>{L['title']}</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='subtitle'>{L['subtitle']}</div>", unsafe_allow_html=True)
+if st.session_state.mode == "chart":
+    st.markdown(f"<div class='big-title'>{L['title']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='subtitle'>{L['subtitle']}</div>", unsafe_allow_html=True)
+else:
+    st.markdown(f"<div class='big-title'>{L['signal_title']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='subtitle'>{L['signal_subtitle']}</div>", unsafe_allow_html=True)
 st.write("")
 
 # ----------------------------------------------------------------------
-# TOP CONTROLS
-# ----------------------------------------------------------------------
-c1, c2, c3 = st.columns([2, 1, 1])
-with c1:
-    ticker_input = st.text_input(
-        L["ticker_label"], value="AAPL", help=L["ticker_help"]
-    ).strip().upper()
-with c2:
-    period_label = st.selectbox(L["period_label"], list(PERIOD_OPTIONS.keys()), index=1)
-with c3:
-    interval_choice = st.radio(
-        L["interval_label"], [L["daily"], L["weekly"]], horizontal=True
-    )
-
-interval = "1wk" if interval_choice == L["weekly"] else "1d"
-period = PERIOD_OPTIONS[period_label]
-
-# ----------------------------------------------------------------------
-# DATA FETCH (cached)
+# DATA FETCH (cached) -- chart mode
 # ----------------------------------------------------------------------
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_data(ticker: str, period: str, interval: str) -> pd.DataFrame:
@@ -166,7 +268,7 @@ def fetch_data(ticker: str, period: str, interval: str) -> pd.DataFrame:
 
 
 # ----------------------------------------------------------------------
-# INDICATOR CALCULATIONS
+# INDICATOR CALCULATIONS -- chart mode
 # ----------------------------------------------------------------------
 def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -261,189 +363,424 @@ def detect_signals(df: pd.DataFrame, L: dict):
 
 
 # ----------------------------------------------------------------------
-# MAIN
+# SIGNAL SCANNER CALCULATIONS -- signals mode
 # ----------------------------------------------------------------------
-if not ticker_input:
-    st.stop()
+@st.cache_data(ttl=300, show_spinner=False)
+def compute_buy_signal(ticker_symbol: str) -> dict:
+    try:
+        tk = yf.Ticker(ticker_symbol)
+        hist = tk.history(period="1y")
+        if hist.empty:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_no_price"}
 
-with st.spinner(L["loading"]):
-    raw_df = fetch_data(ticker_input, period, interval)
+        current_price = float(hist["Close"].iloc[-1])
+        high_52w = float(hist["High"].max())
+        drawdown = (current_price - high_52w) / high_52w * 100
 
-if raw_df.empty or len(raw_df) < 5:
-    st.error(L["error_no_data"])
-    st.stop()
+        expirations = tk.options
+        if not expirations:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_no_options"}
 
-df = compute_indicators(raw_df)
-gamma_pts, decel_pts, breakout_pts = detect_signals(df, L)
+        today = datetime.now()
+        far_exps = [e for e in expirations if 120 <= (datetime.strptime(e, "%Y-%m-%d") - today).days <= 360]
+        target_exp = far_exps[-1] if far_exps else expirations[-1]
 
-# ----------------------------------------------------------------------
-# SUMMARY CARD
-# ----------------------------------------------------------------------
-last_close = float(df["Close"].iloc[-1])
-prev_close = float(df["Close"].iloc[-2]) if len(df) > 1 else last_close
-pct_change = ((last_close - prev_close) / prev_close * 100) if prev_close else 0.0
+        opt = tk.option_chain(target_exp)
+        puts = opt.puts.dropna(subset=["openInterest"]).copy()
+        calls = opt.calls.dropna(subset=["openInterest"]).copy()
+        if puts.empty or calls.empty:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_incomplete_chain"}
 
-last_state = df["MOM_STATE"].iloc[-1]
-last_squeeze = bool(df["SQ_ON"].iloc[-1])
+        total_call_oi = calls["openInterest"].sum()
+        total_put_oi = puts["openInterest"].sum()
+        far_pcr = total_put_oi / total_call_oi if total_call_oi > 0 else 0
 
-if last_squeeze:
-    state_display = L["state_squeeze"]
-elif last_state == "bull_accel":
-    state_display = L["state_bull_accel"]
-elif last_state == "bull_decel":
-    state_display = L["state_bull_decel"]
-elif last_state == "bear_accel":
-    state_display = L["state_bear_accel"]
-elif last_state == "bear_decel":
-    state_display = L["state_bear_decel"]
-else:
-    state_display = L["state_neutral"]
+        max_put_idx = puts["openInterest"].idxmax()
+        put_wall_price = float(puts.loc[max_put_idx, "strike"])
+        put_wall_oi = int(puts.loc[max_put_idx, "openInterest"])
 
-m1, m2, m3 = st.columns(3)
-m1.metric(f"{L['price']} ({ticker_input})", f"${last_close:,.2f}")
-m2.metric(L["change"], f"{pct_change:+.2f}%")
-m3.metric(L["state"], state_display)
+        if drawdown <= -25:
+            if put_wall_price * 0.90 <= current_price <= put_wall_price * 1.05:
+                verdict = "signal"
+            elif current_price < put_wall_price * 0.90:
+                verdict = "broken"
+            else:
+                verdict = "wait"
+        else:
+            verdict = "none"
 
-st.write("")
+        return {
+            "ok": True,
+            "ticker": ticker_symbol,
+            "current_price": current_price,
+            "drawdown": drawdown,
+            "target_exp": target_exp,
+            "far_pcr": far_pcr,
+            "put_wall_price": put_wall_price,
+            "put_wall_oi": put_wall_oi,
+            "verdict": verdict,
+        }
+    except Exception as e:
+        return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
 
-# ----------------------------------------------------------------------
-# CHART
-# ----------------------------------------------------------------------
-fig = make_subplots(
-    rows=3,
-    cols=1,
-    shared_xaxes=True,
-    vertical_spacing=0.03,
-    row_heights=[0.55, 0.22, 0.23],
-    subplot_titles=(L["chart1_title"], L["chart2_title"], L["chart3_title"]),
-)
 
-# --- Row 1: Candlestick + SMA50 ---
-fig.add_trace(
-    go.Candlestick(
-        x=df.index,
-        open=df["Open"],
-        high=df["High"],
-        low=df["Low"],
-        close=df["Close"],
-        name=ticker_input,
-        increasing_line_color="#26A69A",
-        decreasing_line_color="#EF5350",
-        showlegend=False,
-    ),
-    row=1,
-    col=1,
-)
-fig.add_trace(
-    go.Scatter(
-        x=df.index,
-        y=df["SMA_50"],
-        name="SMA 50",
-        line=dict(color="yellow", width=1.5),
-    ),
-    row=1,
-    col=1,
-)
+@st.cache_data(ttl=300, show_spinner=False)
+def compute_sell_signal(ticker_symbol: str, entry_price: float, take_profit_pct: float, stop_loss_pct: float) -> dict:
+    try:
+        tk = yf.Ticker(ticker_symbol)
+        hist = tk.history(period="5d")
+        if hist.empty:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_no_price"}
 
-# --- Row 2: OBV ---
-fig.add_trace(
-    go.Scatter(
-        x=df.index,
-        y=df["OBV_RAW"],
-        name="OBV",
-        line=dict(color="#FF3333", width=1.5),
-    ),
-    row=2,
-    col=1,
-)
-fig.add_trace(
-    go.Scatter(
-        x=df.index,
-        y=df["MA_OBV"],
-        name="MA OBV (20)",
-        line=dict(color="#FFCC00", width=1.5, dash="dash"),
-    ),
-    row=2,
-    col=1,
-)
-gc = df[df["OBV_GOLDEN_CROSS"]]
-if not gc.empty:
+        current_price = float(hist["Close"].iloc[-1])
+        pnl_pct = (current_price - entry_price) / entry_price * 100
+
+        expirations = tk.options
+        if not expirations:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_no_options"}
+
+        today = datetime.now()
+        far_exps = [e for e in expirations if 90 <= (datetime.strptime(e, "%Y-%m-%d") - today).days <= 360]
+        target_exp = far_exps[0] if far_exps else expirations[-1]
+
+        opt = tk.option_chain(target_exp)
+        calls = opt.calls.dropna(subset=["openInterest"]).copy()
+        puts = opt.puts.dropna(subset=["openInterest"]).copy()
+
+        call_wall_price = float(calls.loc[calls["openInterest"].idxmax(), "strike"]) if not calls.empty else None
+        put_wall_price = float(puts.loc[puts["openInterest"].idxmax(), "strike"]) if not puts.empty else None
+
+        if pnl_pct <= stop_loss_pct:
+            verdict = "stoploss"
+        elif put_wall_price and current_price < put_wall_price * 0.95:
+            verdict = "break"
+        elif call_wall_price and current_price >= call_wall_price * 0.98:
+            verdict = "resistance"
+        elif pnl_pct >= take_profit_pct:
+            verdict = "target"
+        else:
+            verdict = "hold"
+
+        return {
+            "ok": True,
+            "ticker": ticker_symbol,
+            "entry_price": entry_price,
+            "current_price": current_price,
+            "pnl_pct": pnl_pct,
+            "call_wall_price": call_wall_price,
+            "put_wall_price": put_wall_price,
+            "verdict": verdict,
+            "take_profit_pct": take_profit_pct,
+            "stop_loss_pct": stop_loss_pct,
+        }
+    except Exception as e:
+        return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
+
+
+def render_buy_card(r: dict, L: dict):
+    with st.container(border=True):
+        st.markdown(f"#### {r['ticker']}")
+        if not r["ok"]:
+            st.error(L[r["error_key"]].format(ticker=r["ticker"], error=r.get("error", "")))
+            return
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric(L["current_price_label"], f"${r['current_price']:.2f}")
+        c2.metric(L["drawdown_label"], f"{r['drawdown']:.1f}%")
+        c3.metric(L["put_wall_label"], f"${r['put_wall_price']:.2f}")
+        st.caption(
+            f"{L['put_wall_oi_label']}: {r['put_wall_oi']:,} · "
+            f"{L['pcr_label']}: {r['far_pcr']:.2f} · "
+            f"{L['expiration_label']}: {r['target_exp']}"
+        )
+
+        verdict = r["verdict"]
+        title = L[f"buy_verdict_{verdict}_title"]
+        detail = L[f"buy_verdict_{verdict}_detail"].format(
+            drawdown=abs(r["drawdown"]), wall=r["put_wall_price"]
+        )
+        box = {"signal": st.success, "broken": st.warning, "wait": st.info, "none": st.info}[verdict]
+        box(f"**{title}**\n\n{detail}")
+
+
+def render_sell_card(r: dict, L: dict):
+    with st.container(border=True):
+        st.markdown(f"#### {r['ticker']}")
+        if not r["ok"]:
+            st.error(L[r["error_key"]].format(ticker=r["ticker"], error=r.get("error", "")))
+            return
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric(L["entry_price_display_label"], f"${r['entry_price']:.2f}")
+        c2.metric(L["current_price_label"], f"${r['current_price']:.2f}")
+        c3.metric(L["pnl_label"], f"{r['pnl_pct']:+.2f}%")
+
+        wall_bits = []
+        if r["call_wall_price"] is not None:
+            wall_bits.append(f"{L['call_wall_label']}: ${r['call_wall_price']:.2f}")
+        if r["put_wall_price"] is not None:
+            wall_bits.append(f"{L['put_wall_label']}: ${r['put_wall_price']:.2f}")
+        if wall_bits:
+            st.caption(" · ".join(wall_bits))
+
+        verdict = r["verdict"]
+        title = L[f"sell_verdict_{verdict}_title"]
+        detail = L[f"sell_verdict_{verdict}_detail"].format(
+            pnl=abs(r["pnl_pct"]),
+            limit=abs(r["stop_loss_pct"]),
+            target=r["take_profit_pct"],
+            wall_put=r["put_wall_price"] if r["put_wall_price"] is not None else 0.0,
+            wall_call=r["call_wall_price"] if r["call_wall_price"] is not None else 0.0,
+        )
+        box = {
+            "stoploss": st.error,
+            "break": st.error,
+            "resistance": st.success,
+            "target": st.success,
+            "hold": st.info,
+        }[verdict]
+        box(f"**{title}**\n\n{detail}")
+
+
+# ========================================================================
+# MODE: CHART
+# ========================================================================
+if st.session_state.mode == "chart":
+    c1, c2, c3 = st.columns([2, 1, 1])
+    with c1:
+        ticker_input = st.text_input(
+            L["ticker_label"], value="AAPL", help=L["ticker_help"]
+        ).strip().upper()
+    with c2:
+        period_label = st.selectbox(L["period_label"], list(PERIOD_OPTIONS.keys()), index=1)
+    with c3:
+        interval_choice = st.radio(
+            L["interval_label"], [L["daily"], L["weekly"]], horizontal=True
+        )
+
+    interval = "1wk" if interval_choice == L["weekly"] else "1d"
+    period = PERIOD_OPTIONS[period_label]
+
+    if not ticker_input:
+        st.stop()
+
+    with st.spinner(L["loading"]):
+        raw_df = fetch_data(ticker_input, period, interval)
+
+    if raw_df.empty or len(raw_df) < 5:
+        st.error(L["error_no_data"])
+        st.stop()
+
+    df = compute_indicators(raw_df)
+    gamma_pts, decel_pts, breakout_pts = detect_signals(df, L)
+
+    # --- Summary card ---
+    last_close = float(df["Close"].iloc[-1])
+    prev_close = float(df["Close"].iloc[-2]) if len(df) > 1 else last_close
+    pct_change = ((last_close - prev_close) / prev_close * 100) if prev_close else 0.0
+
+    last_state = df["MOM_STATE"].iloc[-1]
+    last_squeeze = bool(df["SQ_ON"].iloc[-1])
+
+    if last_squeeze:
+        state_display = L["state_squeeze"]
+    elif last_state == "bull_accel":
+        state_display = L["state_bull_accel"]
+    elif last_state == "bull_decel":
+        state_display = L["state_bull_decel"]
+    elif last_state == "bear_accel":
+        state_display = L["state_bear_accel"]
+    elif last_state == "bear_decel":
+        state_display = L["state_bear_decel"]
+    else:
+        state_display = L["state_neutral"]
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric(f"{L['price']} ({ticker_input})", f"${last_close:,.2f}")
+    m2.metric(L["change"], f"{pct_change:+.2f}%")
+    m3.metric(L["state"], state_display)
+
+    st.write("")
+
+    # --- Chart ---
+    fig = make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.55, 0.22, 0.23],
+        subplot_titles=(L["chart1_title"], L["chart2_title"], L["chart3_title"]),
+    )
+
+    # Row 1: Candlestick + SMA50
+    fig.add_trace(
+        go.Candlestick(
+            x=df.index,
+            open=df["Open"],
+            high=df["High"],
+            low=df["Low"],
+            close=df["Close"],
+            name=ticker_input,
+            increasing_line_color="#26A69A",
+            decreasing_line_color="#EF5350",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
     fig.add_trace(
         go.Scatter(
-            x=gc.index,
-            y=gc["OBV_RAW"],
-            mode="markers",
-            name=L["golden_cross"],
-            marker=dict(symbol="star", size=10, color="gold", line=dict(width=1, color="black")),
+            x=df.index,
+            y=df["SMA_50"],
+            name="SMA 50",
+            line=dict(color="yellow", width=1.5),
+        ),
+        row=1,
+        col=1,
+    )
+
+    # Row 2: OBV
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["OBV_RAW"],
+            name="OBV",
+            line=dict(color="#FF3333", width=1.5),
         ),
         row=2,
         col=1,
     )
-
-# --- Row 3: Momentum histogram ---
-fig.add_trace(
-    go.Bar(
-        x=df.index,
-        y=df["MOM"],
-        marker_color=df["MOM_COLOR"],
-        name="Momentum",
-        showlegend=False,
-    ),
-    row=3,
-    col=1,
-)
-
-# Squeeze band on zero line: green bar segments where SQ_ON is True
-sq = df[df["SQ_ON"]]
-if not sq.empty:
     fig.add_trace(
         go.Scatter(
-            x=sq.index,
-            y=[0] * len(sq),
-            mode="markers",
-            marker=dict(symbol="line-ew", size=10, color="#00FF00", line=dict(width=4, color="#00FF00")),
-            name="Squeeze",
+            x=df.index,
+            y=df["MA_OBV"],
+            name="MA OBV (20)",
+            line=dict(color="#FFCC00", width=1.5, dash="dash"),
+        ),
+        row=2,
+        col=1,
+    )
+    gc = df[df["OBV_GOLDEN_CROSS"]]
+    if not gc.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=gc.index,
+                y=gc["OBV_RAW"],
+                mode="markers",
+                name=L["golden_cross"],
+                marker=dict(symbol="star", size=10, color="gold", line=dict(width=1, color="black")),
+            ),
+            row=2,
+            col=1,
+        )
+
+    # Row 3: Momentum histogram
+    fig.add_trace(
+        go.Bar(
+            x=df.index,
+            y=df["MOM"],
+            marker_color=df["MOM_COLOR"],
+            name="Momentum",
             showlegend=False,
         ),
         row=3,
         col=1,
     )
 
-# Annotations for signals
-for idx, y, text in gamma_pts:
-    fig.add_annotation(
-        x=idx, y=y, row=3, col=1, text=text, showarrow=True,
-        arrowhead=2, ay=-30, font=dict(size=10, color="#FF0000"),
-    )
-for idx, y, text in decel_pts:
-    fig.add_annotation(
-        x=idx, y=y, row=3, col=1, text=text, showarrow=True,
-        arrowhead=2, ay=30, font=dict(size=10, color="#D2691E"),
-    )
-for idx, y, text in breakout_pts:
-    fig.add_annotation(
-        x=idx, y=y, row=3, col=1, text=text, showarrow=True,
-        arrowhead=2, ay=30, font=dict(size=10, color="#00FFFF"),
-    )
+    # Squeeze band on zero line: green bar segments where SQ_ON is True
+    sq = df[df["SQ_ON"]]
+    if not sq.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=sq.index,
+                y=[0] * len(sq),
+                mode="markers",
+                marker=dict(symbol="line-ew", size=10, color="#00FF00", line=dict(width=4, color="#00FF00")),
+                name="Squeeze",
+                showlegend=False,
+            ),
+            row=3,
+            col=1,
+        )
 
-fig.add_hline(y=0, line=dict(color="#555555", width=1), row=3, col=1)
+    # Annotations for signals
+    for idx, y, text in gamma_pts:
+        fig.add_annotation(
+            x=idx, y=y, row=3, col=1, text=text, showarrow=True,
+            arrowhead=2, ay=-30, font=dict(size=10, color="#FF0000"),
+        )
+    for idx, y, text in decel_pts:
+        fig.add_annotation(
+            x=idx, y=y, row=3, col=1, text=text, showarrow=True,
+            arrowhead=2, ay=30, font=dict(size=10, color="#D2691E"),
+        )
+    for idx, y, text in breakout_pts:
+        fig.add_annotation(
+            x=idx, y=y, row=3, col=1, text=text, showarrow=True,
+            arrowhead=2, ay=30, font=dict(size=10, color="#00FFFF"),
+        )
 
-# --- Layout ---
-fig.update_layout(
-    template="plotly_dark",
-    height=900,
-    plot_bgcolor="#0E1117",
-    paper_bgcolor="#0E1117",
-    font=dict(color="#FAFAFA"),
-    hovermode="x unified",
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-    margin=dict(l=40, r=40, t=60, b=20),
-    xaxis3=dict(rangeslider=dict(visible=False)),
-)
-fig.update_xaxes(rangeslider_visible=False, row=1, col=1)
-fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor", spikecolor="grey", spikethickness=1)
-fig.update_yaxes(showspikes=True, spikethickness=1)
+    fig.add_hline(y=0, line=dict(color="#555555", width=1), row=3, col=1)
 
-st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False}, theme=None)
+    fig.update_layout(
+        template="plotly_dark",
+        height=900,
+        plot_bgcolor="#0E1117",
+        paper_bgcolor="#0E1117",
+        font=dict(color="#FAFAFA"),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=40, r=40, t=60, b=20),
+        xaxis3=dict(rangeslider=dict(visible=False)),
+    )
+    fig.update_xaxes(rangeslider_visible=False, row=1, col=1)
+    fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor", spikecolor="grey", spikethickness=1)
+    fig.update_yaxes(showspikes=True, spikethickness=1)
+
+    st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False}, theme=None)
+
+# ========================================================================
+# MODE: SIGNALS
+# ========================================================================
+else:
+    st.info(L["signal_disclaimer"])
+    st.write("")
+
+    # --- Buy signal scanner ---
+    st.subheader(L["buy_section_title"])
+    st.caption(L["buy_section_desc"])
+    watchlist_input = st.text_input(L["watchlist_label"], value="BMY, GM, RMBS", key="watchlist_input")
+    if st.button(L["scan_button"], key="scan_btn"):
+        tickers = [t.strip().upper() for t in watchlist_input.split(",") if t.strip()]
+        with st.spinner(L["loading"]):
+            st.session_state.buy_results = [compute_buy_signal(t) for t in tickers]
+
+    for r in st.session_state.buy_results:
+        render_buy_card(r, L)
+
+    st.write("")
+    st.divider()
+
+    # --- Sell / take-profit monitor ---
+    st.subheader(L["sell_section_title"])
+    st.caption(L["sell_section_desc"])
+    s1, s2, s3, s4 = st.columns(4)
+    with s1:
+        sell_ticker = st.text_input(L["sell_ticker_label"], value="BMY", key="sell_ticker")
+    with s2:
+        entry_price = st.number_input(L["entry_price_label"], value=42.50, min_value=0.0, step=0.5, key="entry_price")
+    with s3:
+        tp_pct = st.number_input(L["take_profit_label"], value=30.0, step=1.0, key="tp_pct")
+    with s4:
+        sl_pct = st.number_input(L["stop_loss_label"], value=-15.0, step=1.0, key="sl_pct")
+
+    if st.button(L["check_button"], key="check_btn"):
+        with st.spinner(L["loading"]):
+            st.session_state.sell_result = compute_sell_signal(
+                sell_ticker.strip().upper(), entry_price, tp_pct, sl_pct
+            )
+
+    if st.session_state.sell_result:
+        render_sell_card(st.session_state.sell_result, L)
 
 st.caption(L["footer"])
