@@ -219,7 +219,7 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
         (df["MOM"] < 0) & (df["MOM"] < prev_mom),   # bright cyan - bearish accel
         (df["MOM"] < 0) & (df["MOM"] >= prev_mom),  # dark blue - bearish decel
     ]
-    colors = ["#FF0000", "#8B0000", "#00FFFF", "#00008B"]
+    colors = ["#FF0000", "#D2691E", "#00FFFF", "#4682B4"]
     df["MOM_COLOR"] = np.select(conditions, colors, default="#777777")
     df["MOM_STATE"] = np.select(
         conditions,
@@ -418,7 +418,7 @@ for idx, y, text in gamma_pts:
 for idx, y, text in decel_pts:
     fig.add_annotation(
         x=idx, y=y, row=3, col=1, text=text, showarrow=True,
-        arrowhead=2, ay=30, font=dict(size=10, color="#8B0000"),
+        arrowhead=2, ay=30, font=dict(size=10, color="#D2691E"),
     )
 for idx, y, text in breakout_pts:
     fig.add_annotation(
