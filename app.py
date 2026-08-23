@@ -444,6 +444,6 @@ fig.update_xaxes(rangeslider_visible=False, row=1, col=1)
 fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor", spikecolor="grey", spikethickness=1)
 fig.update_yaxes(showspikes=True, spikethickness=1)
 
-st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False})
+st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False}, theme=None)
 
 st.caption(L["footer"])
