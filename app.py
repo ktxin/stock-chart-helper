@@ -83,7 +83,8 @@ TXT = {
         "current_price_label": "Current Price",
         "drawdown_label": "Drop From 52-Week High",
         "put_wall_label": "Support Level (Put Wall)",
-        "put_wall_oi_label": "Contracts at This Level",
+        "put_wall_oi_label": "Put Wall Contracts",
+        "call_wall_oi_label": "Call Wall Contracts",
         "pcr_label": "Put/Call Ratio",
         "expiration_label": "Options Expiration Used",
         "call_wall_label": "Resistance Level (Call Wall)",
@@ -162,7 +163,8 @@ TXT = {
         "current_price_label": "当前价格",
         "drawdown_label": "距52周高点跌幅",
         "put_wall_label": "支撑位（Put 防守墙）",
-        "put_wall_oi_label": "该价位持仓量",
+        "put_wall_oi_label": "Put 防守墙持仓量",
+        "call_wall_oi_label": "Call 阻力墙持仓量",
         "pcr_label": "认沽/认购比率 (PCR)",
         "expiration_label": "所用期权到期日",
         "call_wall_label": "阻力位（Call 阻力墙）",
@@ -229,15 +231,15 @@ with top_lang:
 st.markdown(
     """
     <style>
-    .stApp { background-color: #0E1117; color: #FAFAFA; }
+    .stApp { background-color: #171C16; color: #F2F0E6; }
     div[data-testid="stMetric"] {
-        background-color: #1A1D24;
-        border: 1px solid #2A2E38;
+        background-color: #212820;
+        border: 1px solid #333D2E;
         border-radius: 12px;
         padding: 16px;
     }
     .big-title { font-size: 2.2rem; font-weight: 700; margin-bottom: 0; }
-    .subtitle { color: #9AA0A6; font-size: 1.05rem; margin-top: 4px; }
+    .subtitle { color: #A9B29C; font-size: 1.05rem; margin-top: 4px; }
     footer { visibility: hidden; }
     #MainMenu { visibility: hidden; }
     </style>
@@ -399,6 +401,10 @@ def compute_buy_signal(ticker_symbol: str) -> dict:
         put_wall_price = float(puts.loc[max_put_idx, "strike"])
         put_wall_oi = int(puts.loc[max_put_idx, "openInterest"])
 
+        max_call_idx = calls["openInterest"].idxmax()
+        call_wall_price = float(calls.loc[max_call_idx, "strike"])
+        call_wall_oi = int(calls.loc[max_call_idx, "openInterest"])
+
         if drawdown <= -25:
             if put_wall_price * 0.90 <= current_price <= put_wall_price * 1.05:
                 verdict = "signal"
@@ -418,6 +424,8 @@ def compute_buy_signal(ticker_symbol: str) -> dict:
             "far_pcr": far_pcr,
             "put_wall_price": put_wall_price,
             "put_wall_oi": put_wall_oi,
+            "call_wall_price": call_wall_price,
+            "call_wall_oi": call_wall_oi,
             "verdict": verdict,
         }
     except Exception as e:
@@ -484,12 +492,15 @@ def render_buy_card(r: dict, L: dict):
             st.error(L[r["error_key"]].format(ticker=r["ticker"], error=r.get("error", "")))
             return
 
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         c1.metric(L["current_price_label"], f"${r['current_price']:.2f}")
         c2.metric(L["drawdown_label"], f"{r['drawdown']:.1f}%")
+        c3, c4 = st.columns(2)
         c3.metric(L["put_wall_label"], f"${r['put_wall_price']:.2f}")
+        c4.metric(L["call_wall_label"], f"${r['call_wall_price']:.2f}")
         st.caption(
             f"{L['put_wall_oi_label']}: {r['put_wall_oi']:,} · "
+            f"{L['call_wall_oi_label']}: {r['call_wall_oi']:,} · "
             f"{L['pcr_label']}: {r['far_pcr']:.2f} · "
             f"{L['expiration_label']}: {r['target_exp']}"
         )
@@ -725,9 +736,9 @@ if st.session_state.mode == "chart":
     fig.update_layout(
         template="plotly_dark",
         height=900,
-        plot_bgcolor="#0E1117",
-        paper_bgcolor="#0E1117",
-        font=dict(color="#FAFAFA"),
+        plot_bgcolor="#171C16",
+        paper_bgcolor="#171C16",
+        font=dict(color="#F2F0E6"),
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=40, r=40, t=60, b=20),
