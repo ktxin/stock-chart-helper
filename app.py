@@ -505,7 +505,12 @@ def render_buy_card(r: dict, L: dict):
         c3, c4 = st.columns(2)
         c3.metric(L["put_wall_label"], f"${r['put_wall_price']:.2f}")
         c4.metric(L["call_wall_label"], f"${r['call_wall_price']:.2f}")
-        st.caption(f"{L['buy_zone_label']}: \\${r['buy_zone_low']:.2f} – \\${r['buy_zone_high']:.2f}")
+        st.caption(
+            f"{L['buy_zone_label']}: "
+            f"\\${r['buy_zone_low']:.2f} (90%) – "
+            f"\\${r['put_wall_price']:.2f} (100%) – "
+            f"\\${r['buy_zone_high']:.2f} (105%)"
+        )
         st.caption(
             f"{L['put_wall_oi_label']}: {r['put_wall_oi']:,} · "
             f"{L['call_wall_oi_label']}: {r['call_wall_oi']:,} · "
