@@ -85,6 +85,7 @@ TXT = {
         "put_wall_label": "Support Level (Put Wall)",
         "put_wall_oi_label": "Put Wall Contracts",
         "call_wall_oi_label": "Call Wall Contracts",
+        "buy_zone_label": "Buy Zone (90%–105% of Put Wall)",
         "pcr_label": "Put/Call Ratio",
         "expiration_label": "Options Expiration Used",
         "call_wall_label": "Resistance Level (Call Wall)",
@@ -165,6 +166,7 @@ TXT = {
         "put_wall_label": "支撑位（Put 防守墙）",
         "put_wall_oi_label": "Put 防守墙持仓量",
         "call_wall_oi_label": "Call 阻力墙持仓量",
+        "buy_zone_label": "买入区间（Put 防守墙的 90%–105%）",
         "pcr_label": "认沽/认购比率 (PCR)",
         "expiration_label": "所用期权到期日",
         "call_wall_label": "阻力位（Call 阻力墙）",
@@ -405,10 +407,13 @@ def compute_buy_signal(ticker_symbol: str) -> dict:
         call_wall_price = float(calls.loc[max_call_idx, "strike"])
         call_wall_oi = int(calls.loc[max_call_idx, "openInterest"])
 
+        buy_zone_low = put_wall_price * 0.90
+        buy_zone_high = put_wall_price * 1.05
+
         if drawdown <= -25:
-            if put_wall_price * 0.90 <= current_price <= put_wall_price * 1.05:
+            if buy_zone_low <= current_price <= buy_zone_high:
                 verdict = "signal"
-            elif current_price < put_wall_price * 0.90:
+            elif current_price < buy_zone_low:
                 verdict = "broken"
             else:
                 verdict = "wait"
@@ -426,6 +431,8 @@ def compute_buy_signal(ticker_symbol: str) -> dict:
             "put_wall_oi": put_wall_oi,
             "call_wall_price": call_wall_price,
             "call_wall_oi": call_wall_oi,
+            "buy_zone_low": buy_zone_low,
+            "buy_zone_high": buy_zone_high,
             "verdict": verdict,
         }
     except Exception as e:
@@ -498,6 +505,7 @@ def render_buy_card(r: dict, L: dict):
         c3, c4 = st.columns(2)
         c3.metric(L["put_wall_label"], f"${r['put_wall_price']:.2f}")
         c4.metric(L["call_wall_label"], f"${r['call_wall_price']:.2f}")
+        st.caption(f"{L['buy_zone_label']}: \\${r['buy_zone_low']:.2f} – \\${r['buy_zone_high']:.2f}")
         st.caption(
             f"{L['put_wall_oi_label']}: {r['put_wall_oi']:,} · "
             f"{L['call_wall_oi_label']}: {r['call_wall_oi']:,} · "
