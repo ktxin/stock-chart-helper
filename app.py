@@ -517,9 +517,9 @@ def render_sell_card(r: dict, L: dict):
 
         wall_bits = []
         if r["call_wall_price"] is not None:
-            wall_bits.append(f"{L['call_wall_label']}: ${r['call_wall_price']:.2f}")
+            wall_bits.append(f"{L['call_wall_label']}: \\${r['call_wall_price']:.2f}")
         if r["put_wall_price"] is not None:
-            wall_bits.append(f"{L['put_wall_label']}: ${r['put_wall_price']:.2f}")
+            wall_bits.append(f"{L['put_wall_label']}: \\${r['put_wall_price']:.2f}")
         if wall_bits:
             st.caption(" · ".join(wall_bits))
 
