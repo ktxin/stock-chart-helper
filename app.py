@@ -62,6 +62,10 @@ TXT = {
         "decel": "🛑Deceleration",
         "breakout": "💥Breakout",
         "golden_cross": "OBV Golden Cross",
+        "put_wall_line_label": "Put Wall (Support)",
+        "call_wall_line_label": "Call Wall (Resistance)",
+        "buy_arrow_label": "Buy Signal",
+        "sell_arrow_label": "Sell/Caution Signal",
         # --- mode toggle ---
         "to_signals_btn": "📡 Buy/Sell Signals",
         "to_chart_btn": "📈 Back to Chart",
@@ -143,6 +147,10 @@ TXT = {
         "decel": "🛑减速",
         "breakout": "💥突破",
         "golden_cross": "OBV 黄金交叉",
+        "put_wall_line_label": "Put 防守墙（支撑）",
+        "call_wall_line_label": "Call 阻力墙（阻力）",
+        "buy_arrow_label": "买入信号",
+        "sell_arrow_label": "卖出/谨慎信号",
         # --- mode toggle ---
         "to_signals_btn": "📡 买卖信号",
         "to_chart_btn": "📈 返回图表",
@@ -597,6 +605,7 @@ if st.session_state.mode == "chart":
 
     df = compute_indicators(raw_df)
     gamma_pts, decel_pts, breakout_pts = detect_signals(df, L)
+    wall_data = compute_buy_signal(ticker_input)
 
     # --- Summary card ---
     last_close = float(df["Close"].iloc[-1])
@@ -662,6 +671,48 @@ if st.session_state.mode == "chart":
         row=1,
         col=1,
     )
+
+    # Put wall / call wall lines + buy/sell arrow, reusing the Buy Scanner's
+    # cached options-derived walls and verdict logic (same formula, no
+    # separate/duplicate signal definition).
+    if wall_data.get("ok"):
+        put_wall_price = wall_data["put_wall_price"]
+        call_wall_price = wall_data["call_wall_price"]
+
+        fig.add_hline(
+            y=put_wall_price, row=1, col=1,
+            line=dict(color="#4CAF50", dash="dash", width=1),
+            annotation_text=f"{L['put_wall_line_label']} ${put_wall_price:.2f}",
+            annotation_position="bottom left",
+            annotation_font=dict(size=10, color="#4CAF50"),
+        )
+        fig.add_hline(
+            y=call_wall_price, row=1, col=1,
+            line=dict(color="#FF6B6B", dash="dash", width=1),
+            annotation_text=f"{L['call_wall_line_label']} ${call_wall_price:.2f}",
+            annotation_position="top left",
+            annotation_font=dict(size=10, color="#FF6B6B"),
+        )
+
+        last_idx = df.index[-1]
+        if wall_data["verdict"] == "signal":
+            fig.add_trace(
+                go.Scatter(
+                    x=[last_idx], y=[float(df["Low"].iloc[-1]) * 0.98],
+                    mode="markers", name=L["buy_arrow_label"],
+                    marker=dict(symbol="triangle-up", size=16, color="#4CAF50", line=dict(width=1, color="black")),
+                ),
+                row=1, col=1,
+            )
+        elif last_close >= call_wall_price * 0.98 or last_close < put_wall_price * 0.95:
+            fig.add_trace(
+                go.Scatter(
+                    x=[last_idx], y=[float(df["High"].iloc[-1]) * 1.02],
+                    mode="markers", name=L["sell_arrow_label"],
+                    marker=dict(symbol="triangle-down", size=16, color="#FF6B6B", line=dict(width=1, color="black")),
+                ),
+                row=1, col=1,
+            )
 
     # Row 2: OBV
     fig.add_trace(
