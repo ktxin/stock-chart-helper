@@ -11,6 +11,9 @@ signals (stop-loss / take-profit vs. options call-wall resistance).
 Run with:  streamlit run app.py
 """
 
+import json
+import os
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -337,8 +340,23 @@ SP500_LARGE_CAP = [
     ("BIIB", "Biogen"), ("EBAY", "eBay"), ("RMBS", "Rambus"),
 ]
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def load_screened_universe() -> list:
+    """Pre-screened US stocks (Market Cap >= $1.6B, Float >= 400M) built
+    offline by build_ticker_universe.py -- see that script to refresh.
+    Falls back to the smaller hand-picked S&P 500 list if the data file
+    is ever missing, so the picker never breaks."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "us_stocks_screened.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return [(r["ticker"], r["name"]) for r in data]
+    except Exception:
+        return SP500_LARGE_CAP
+
+
 TICKER_UNIVERSE = sorted(
-    {(t.upper(), name) for t, name in INDEX_FUNDS + SP500_LARGE_CAP}, key=lambda x: x[0]
+    {(t.upper(), name) for t, name in INDEX_FUNDS + load_screened_universe()}, key=lambda x: x[0]
 )
 
 
