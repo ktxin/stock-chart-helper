@@ -125,10 +125,14 @@ TXT = {
         "weekly_scan_button": "🔍 Scan Weekly Signals",
         "weekly_col_ticker": "Ticker",
         "weekly_col_close": "Close",
+        "weekly_col_market_cap": "Market Cap ($B)",
+        "weekly_col_float": "Float Shares (M)",
         "weekly_col_rsi": "RSI (14w)",
         "weekly_col_signals": "Signals",
         "weekly_no_signals": "No weekly signals triggered this week for the entered stock pool.",
         "weekly_errors_caption": "Couldn't check: {tickers}",
+        "weekly_screened_caption": "Didn't meet the size screen (Market Cap ≥ $1.6B, Float ≥ 400M): {tickers}",
+        "weekly_download_button": "⬇️ Download Results (CSV)",
         "err_insufficient_data": "Not enough weekly price history for {ticker}.",
         "sig_bull_div": "🧲 Weekly Bullish Divergence",
         "sig_sos_breakout": "💥 Weekly SOS Breakout",
@@ -226,10 +230,14 @@ TXT = {
         "weekly_scan_button": "🔍 扫描周线信号",
         "weekly_col_ticker": "股票代码",
         "weekly_col_close": "收盘价",
+        "weekly_col_market_cap": "市值（十亿美元）",
+        "weekly_col_float": "流通股（百万股）",
         "weekly_col_rsi": "RSI（14周）",
         "weekly_col_signals": "信号",
         "weekly_no_signals": "所输入股票池本周未触发任何周线信号。",
         "weekly_errors_caption": "无法检查：{tickers}",
+        "weekly_screened_caption": "未通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）：{tickers}",
+        "weekly_download_button": "⬇️ 下载结果（CSV）",
         "err_insufficient_data": "{ticker} 的周线历史数据不足。",
         "sig_bull_div": "🧲 周线看涨背离",
         "sig_sos_breakout": "💥 周线放量突破",
@@ -645,10 +653,30 @@ def compute_sell_signal(ticker_symbol: str, entry_price: float, take_profit_pct:
         return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
 
 
+MIN_MARKET_CAP = 1.6e9   # $1.6 billion
+MIN_FLOAT_SHARES = 4.0e8  # 400 million shares
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def compute_weekly_signals(ticker_symbol: str) -> dict:
     try:
-        df = yf.download(ticker_symbol, period="2y", interval="1wk", progress=False)
+        stock = yf.Ticker(ticker_symbol)
+
+        # --- Fundamental screen: Market Cap >= $1.6B, Float Shares >= 400M ---
+        info = stock.info
+        market_cap = info.get("marketCap", 0) or 0
+        float_shares = info.get("floatShares") or info.get("sharesOutstanding", 0) or 0
+
+        if market_cap < MIN_MARKET_CAP or float_shares < MIN_FLOAT_SHARES:
+            return {
+                "ok": False,
+                "ticker": ticker_symbol,
+                "error_key": "err_fundamentals_screen",
+                "market_cap": market_cap,
+                "float_shares": float_shares,
+            }
+
+        df = stock.history(period="2y", interval="1wk")
         if df.empty or len(df) < 30:
             return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
@@ -719,6 +747,8 @@ def compute_weekly_signals(ticker_symbol: str) -> dict:
             "close": curr_close,
             "rsi": curr_rsi,
             "signal_keys": signal_keys,
+            "market_cap": market_cap,
+            "float_shares": float_shares,
         }
     except Exception as e:
         return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
@@ -800,22 +830,36 @@ def render_sell_card(r: dict, L: dict):
 
 def render_weekly_results(results: list, L: dict):
     matched = [r for r in results if r.get("ok") and r["signal_keys"]]
-    errored = [r for r in results if not r.get("ok")]
+    ok_no_signal = [r for r in results if r.get("ok") and not r["signal_keys"]]
+    screened_out = [r for r in results if not r.get("ok") and r.get("error_key") == "err_fundamentals_screen"]
+    errored = [r for r in results if not r.get("ok") and r.get("error_key") != "err_fundamentals_screen"]
 
     if matched:
+        matched.sort(key=lambda r: r.get("market_cap", 0), reverse=True)
         table_rows = [
             {
                 L["weekly_col_ticker"]: r["ticker"],
                 L["weekly_col_close"]: f"${r['close']:.2f}",
+                L["weekly_col_market_cap"]: f"{r['market_cap'] / 1e9:.2f}",
+                L["weekly_col_float"]: f"{r['float_shares'] / 1e6:.1f}",
                 L["weekly_col_rsi"]: f"{r['rsi']:.1f}",
                 L["weekly_col_signals"]: " | ".join(L[f"sig_{k}"] for k in r["signal_keys"]),
             }
             for r in matched
         ]
-        st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
-    elif not errored:
+        results_df = pd.DataFrame(table_rows)
+        st.dataframe(results_df, use_container_width=True, hide_index=True)
+        st.download_button(
+            L["weekly_download_button"],
+            data=results_df.to_csv(index=False).encode("utf-8"),
+            file_name="weekly_signals.csv",
+            mime="text/csv",
+        )
+    elif ok_no_signal:
         st.info(L["weekly_no_signals"])
 
+    if screened_out:
+        st.caption(L["weekly_screened_caption"].format(tickers=", ".join(r["ticker"] for r in screened_out)))
     if errored:
         st.caption(L["weekly_errors_caption"].format(tickers=", ".join(r["ticker"] for r in errored)))
 
