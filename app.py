@@ -39,6 +39,8 @@ TXT = {
         "lang_toggle": "中文 (Mandarin)",
         "ticker_label": "Stock Symbol",
         "ticker_help": "Example: AAPL for Apple, TSLA for Tesla",
+        "ticker_picker_label": "🔎 Search & pick a stock (or type below)",
+        "ticker_picker_placeholder": "— Type your own below —",
         "period_label": "Time Range",
         "interval_label": "Chart Type",
         "daily": "Daily",
@@ -138,6 +140,8 @@ TXT = {
         "lang_toggle": "English",
         "ticker_label": "股票代码",
         "ticker_help": "例如：AAPL 代表苹果公司，TSLA 代表特斯拉",
+        "ticker_picker_label": "🔎 搜索并选择股票（或在下方手动输入）",
+        "ticker_picker_placeholder": "— 在下方手动输入 —",
         "period_label": "时间范围",
         "interval_label": "图表类型",
         "daily": "每日",
@@ -234,6 +238,117 @@ TXT = {
 }
 
 PERIOD_OPTIONS = {"6M": "6mo", "1Y": "1y", "2Y": "2y"}
+
+# ----------------------------------------------------------------------
+# TICKER PICKER UNIVERSE
+# Major index funds + the S&P 500's largest, most recognizable
+# constituents across sectors. Not an exhaustive/always-current S&P 500
+# list -- anything not listed here can still be typed directly into the
+# ticker box, this is just a convenience shortlist for the dropdown.
+# ----------------------------------------------------------------------
+INDEX_FUNDS = [
+    ("SPY", "SPDR S&P 500 ETF Trust"),
+    ("VOO", "Vanguard S&P 500 ETF"),
+    ("IVV", "iShares Core S&P 500 ETF"),
+    ("QQQ", "Invesco QQQ Trust (Nasdaq-100)"),
+    ("DIA", "SPDR Dow Jones Industrial Average ETF"),
+    ("IWM", "iShares Russell 2000 ETF"),
+    ("VTI", "Vanguard Total Stock Market ETF"),
+    ("VEA", "Vanguard FTSE Developed Markets ETF"),
+    ("VWO", "Vanguard FTSE Emerging Markets ETF"),
+    ("VXUS", "Vanguard Total International Stock ETF"),
+    ("AGG", "iShares Core U.S. Aggregate Bond ETF"),
+    ("BND", "Vanguard Total Bond Market ETF"),
+    ("GLD", "SPDR Gold Shares"),
+    ("XLK", "Technology Select Sector SPDR Fund"),
+    ("XLF", "Financial Select Sector SPDR Fund"),
+    ("XLE", "Energy Select Sector SPDR Fund"),
+    ("XLV", "Health Care Select Sector SPDR Fund"),
+]
+
+SP500_LARGE_CAP = [
+    ("AAPL", "Apple"), ("MSFT", "Microsoft"), ("NVDA", "NVIDIA"), ("AMZN", "Amazon"),
+    ("GOOGL", "Alphabet (Class A)"), ("GOOG", "Alphabet (Class C)"), ("META", "Meta Platforms"),
+    ("TSLA", "Tesla"), ("AVGO", "Broadcom"), ("BRK-B", "Berkshire Hathaway"),
+    ("JPM", "JPMorgan Chase"), ("LLY", "Eli Lilly"), ("V", "Visa"), ("UNH", "UnitedHealth Group"),
+    ("XOM", "Exxon Mobil"), ("MA", "Mastercard"), ("COST", "Costco"), ("HD", "Home Depot"),
+    ("PG", "Procter & Gamble"), ("JNJ", "Johnson & Johnson"), ("NFLX", "Netflix"),
+    ("BAC", "Bank of America"), ("ABBV", "AbbVie"), ("CRM", "Salesforce"), ("ORCL", "Oracle"),
+    ("KO", "Coca-Cola"), ("AMD", "Advanced Micro Devices"), ("CVX", "Chevron"), ("WMT", "Walmart"),
+    ("PEP", "PepsiCo"), ("MRK", "Merck"), ("ADBE", "Adobe"), ("TMO", "Thermo Fisher Scientific"),
+    ("ACN", "Accenture"), ("LIN", "Linde"), ("MCD", "McDonald's"), ("CSCO", "Cisco Systems"),
+    ("ABT", "Abbott Laboratories"), ("WFC", "Wells Fargo"), ("DHR", "Danaher"), ("IBM", "IBM"),
+    ("GE", "GE Aerospace"), ("QCOM", "Qualcomm"), ("TXN", "Texas Instruments"), ("PM", "Philip Morris International"),
+    ("VZ", "Verizon"), ("CAT", "Caterpillar"), ("INTU", "Intuit"), ("NOW", "ServiceNow"),
+    ("AMGN", "Amgen"), ("ISRG", "Intuitive Surgical"), ("SPGI", "S&P Global"), ("BKNG", "Booking Holdings"),
+    ("AXP", "American Express"), ("PFE", "Pfizer"), ("DIS", "Walt Disney"), ("GS", "Goldman Sachs"),
+    ("RTX", "RTX Corporation"), ("HON", "Honeywell"), ("UNP", "Union Pacific"), ("LOW", "Lowe's"),
+    ("T", "AT&T"), ("COP", "ConocoPhillips"), ("MS", "Morgan Stanley"), ("BLK", "BlackRock"),
+    ("ELV", "Elevance Health"), ("SCHW", "Charles Schwab"), ("BSX", "Boston Scientific"),
+    ("SYK", "Stryker"), ("NEE", "NextEra Energy"), ("PGR", "Progressive"), ("UPS", "UPS"),
+    ("TJX", "TJX Companies"), ("VRTX", "Vertex Pharmaceuticals"), ("C", "Citigroup"),
+    ("ADP", "Automatic Data Processing"), ("MU", "Micron Technology"), ("PLD", "Prologis"),
+    ("MDT", "Medtronic"), ("LMT", "Lockheed Martin"), ("CB", "Chubb"), ("SBUX", "Starbucks"),
+    ("REGN", "Regeneron"), ("AMT", "American Tower"), ("MMC", "Marsh & McLennan"),
+    ("PANW", "Palo Alto Networks"), ("ETN", "Eaton"), ("FI", "Fiserv"), ("BMY", "Bristol-Myers Squibb"),
+    ("GILD", "Gilead Sciences"), ("SO", "Southern Company"), ("DE", "Deere & Company"),
+    ("CI", "Cigna"), ("ANET", "Arista Networks"), ("ZTS", "Zoetis"), ("DUK", "Duke Energy"),
+    ("SHW", "Sherwin-Williams"), ("MO", "Altria Group"), ("CME", "CME Group"), ("KLAC", "KLA Corporation"),
+    ("EOG", "EOG Resources"), ("ICE", "Intercontinental Exchange"), ("SNPS", "Synopsys"),
+    ("TT", "Trane Technologies"), ("APH", "Amphenol"), ("CDNS", "Cadence Design Systems"),
+    ("WM", "Waste Management"), ("CL", "Colgate-Palmolive"), ("ITW", "Illinois Tool Works"),
+    ("PYPL", "PayPal"), ("MCK", "McKesson"), ("CSX", "CSX Corporation"), ("EMR", "Emerson Electric"),
+    ("NOC", "Northrop Grumman"), ("MSI", "Motorola Solutions"), ("APD", "Air Products"),
+    ("FDX", "FedEx"), ("HCA", "HCA Healthcare"), ("GD", "General Dynamics"), ("ORLY", "O'Reilly Automotive"),
+    ("MAR", "Marriott International"), ("ROP", "Roper Technologies"), ("PSA", "Public Storage"),
+    ("AJG", "Arthur J. Gallagher"), ("NSC", "Norfolk Southern"), ("ADI", "Analog Devices"),
+    ("TDG", "TransDigm"), ("CVS", "CVS Health"), ("PH", "Parker Hannifin"), ("AON", "Aon"),
+    ("MMM", "3M"), ("F", "Ford Motor"), ("GM", "General Motors"), ("DELL", "Dell Technologies"),
+    ("PCAR", "PACCAR"), ("WELL", "Welltower"), ("USB", "U.S. Bancorp"), ("TGT", "Target"),
+    ("SRE", "Sempra"), ("MET", "MetLife"), ("AFL", "Aflac"), ("NXPI", "NXP Semiconductors"),
+    ("CTAS", "Cintas"), ("COF", "Capital One"), ("AZO", "AutoZone"), ("PNC", "PNC Financial Services"),
+    ("SPG", "Simon Property Group"), ("JCI", "Johnson Controls"), ("ECL", "Ecolab"),
+    ("KMB", "Kimberly-Clark"), ("OXY", "Occidental Petroleum"), ("CARR", "Carrier Global"),
+    ("MPC", "Marathon Petroleum"), ("SLB", "Schlumberger"), ("PSX", "Phillips 66"),
+    ("TFC", "Truist Financial"), ("ALL", "Allstate"), ("DLR", "Digital Realty"),
+    ("KMI", "Kinder Morgan"), ("AMP", "Ameriprise Financial"), ("O", "Realty Income"),
+    ("URI", "United Rentals"), ("MSCI", "MSCI Inc."), ("CMG", "Chipotle Mexican Grill"),
+    ("FTNT", "Fortinet"), ("TRV", "Travelers Companies"), ("D", "Dominion Energy"),
+    ("HLT", "Hilton Worldwide"), ("PAYX", "Paychex"), ("AEP", "American Electric Power"),
+    ("ROST", "Ross Stores"), ("YUM", "Yum! Brands"), ("MCHP", "Microchip Technology"),
+    ("EW", "Edwards Lifesciences"), ("PCG", "PG&E"), ("PRU", "Prudential Financial"),
+    ("STZ", "Constellation Brands"), ("VRSK", "Verisk Analytics"), ("KDP", "Keurig Dr Pepper"),
+    ("EXC", "Exelon"), ("ADSK", "Autodesk"), ("A", "Agilent Technologies"), ("CTVA", "Corteva"),
+    ("XEL", "Xcel Energy"), ("CPRT", "Copart"), ("FICO", "Fair Isaac"), ("HUM", "Humana"),
+    ("EA", "Electronic Arts"), ("IQV", "IQVIA Holdings"), ("GWW", "W.W. Grainger"),
+    ("NUE", "Nucor"), ("SYY", "Sysco"), ("WMB", "Williams Companies"), ("HPQ", "HP Inc."),
+    ("DD", "DuPont"), ("ODFL", "Old Dominion Freight Line"), ("GEHC", "GE HealthCare"),
+    ("VMC", "Vulcan Materials"), ("KVUE", "Kenvue"), ("FAST", "Fastenal"),
+    ("IDXX", "IDEXX Laboratories"), ("MLM", "Martin Marietta Materials"), ("DOW", "Dow Inc."),
+    ("VLO", "Valero Energy"), ("KR", "Kroger"), ("HES", "Hess Corporation"), ("BK", "BNY Mellon"),
+    ("BIIB", "Biogen"), ("EBAY", "eBay"), ("RMBS", "Rambus"),
+]
+
+TICKER_UNIVERSE = sorted(
+    {(t.upper(), name) for t, name in INDEX_FUNDS + SP500_LARGE_CAP}, key=lambda x: x[0]
+)
+
+
+def ticker_picker_options(L: dict) -> list:
+    return [L["ticker_picker_placeholder"]] + [f"{t} — {name}" for t, name in TICKER_UNIVERSE]
+
+
+def make_ticker_picker_callback(picker_key: str, target_key: str, L: dict):
+    """Streamlit selectbox widgets can't accept free text, so this picker is a
+    convenience shortlist that writes into the real (free-text) ticker field
+    rather than replacing it -- anything not in TICKER_UNIVERSE can still be
+    typed directly."""
+    def _cb():
+        picked = st.session_state.get(picker_key, "")
+        if picked and picked != L["ticker_picker_placeholder"]:
+            st.session_state[target_key] = picked.split(" — ")[0]
+    return _cb
+
 
 # ----------------------------------------------------------------------
 # STATE
@@ -709,10 +824,18 @@ def render_weekly_results(results: list, L: dict):
 # MODE: CHART
 # ========================================================================
 if st.session_state.mode == "chart":
+    st.selectbox(
+        L["ticker_picker_label"],
+        options=ticker_picker_options(L),
+        index=0,
+        key="chart_ticker_picker",
+        on_change=make_ticker_picker_callback("chart_ticker_picker", "ticker_text_input", L),
+    )
+
     c1, c2, c3 = st.columns([2, 1, 1])
     with c1:
         ticker_input = st.text_input(
-            L["ticker_label"], value="AAPL", help=L["ticker_help"]
+            L["ticker_label"], value="AAPL", help=L["ticker_help"], key="ticker_text_input"
         ).strip().upper()
     with c2:
         period_label = st.selectbox(L["period_label"], list(PERIOD_OPTIONS.keys()), index=1)
@@ -970,6 +1093,13 @@ else:
     # --- Sell / take-profit monitor ---
     st.subheader(L["sell_section_title"])
     st.caption(L["sell_section_desc"])
+    st.selectbox(
+        L["ticker_picker_label"],
+        options=ticker_picker_options(L),
+        index=0,
+        key="sell_ticker_picker",
+        on_change=make_ticker_picker_callback("sell_ticker_picker", "sell_ticker", L),
+    )
     s1, s2, s3, s4 = st.columns(4)
     with s1:
         sell_ticker = st.text_input(L["sell_ticker_label"], value="BMY", key="sell_ticker")
