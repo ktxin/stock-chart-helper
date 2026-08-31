@@ -117,6 +117,20 @@ TXT = {
         "err_no_options": "No options data available for {ticker}.",
         "err_incomplete_chain": "Options chain data is incomplete for {ticker}.",
         "err_generic": "Something went wrong fetching {ticker}: {error}",
+        "weekly_section_title": "Weekly Signal Scanner",
+        "weekly_section_desc": "Scans a list of stocks for weekly breakout/divergence patterns using RSI, volume, and price structure.",
+        "weekly_pool_label": "Stock Pool (comma-separated)",
+        "weekly_scan_button": "🔍 Scan Weekly Signals",
+        "weekly_col_ticker": "Ticker",
+        "weekly_col_close": "Close",
+        "weekly_col_rsi": "RSI (14w)",
+        "weekly_col_signals": "Signals",
+        "weekly_no_signals": "No weekly signals triggered this week for the entered stock pool.",
+        "weekly_errors_caption": "Couldn't check: {tickers}",
+        "err_insufficient_data": "Not enough weekly price history for {ticker}.",
+        "sig_bull_div": "🧲 Weekly Bullish Divergence",
+        "sig_sos_breakout": "💥 Weekly SOS Breakout",
+        "sig_bear_div": "💀 Weekly Bearish Divergence",
     },
     "zh": {
         "title": "📈 股票图表助手",
@@ -202,6 +216,20 @@ TXT = {
         "err_no_options": "没有 {ticker} 的期权数据。",
         "err_incomplete_chain": "{ticker} 的期权链数据不完整。",
         "err_generic": "获取 {ticker} 时出错：{error}",
+        "weekly_section_title": "周线信号扫描器",
+        "weekly_section_desc": "使用 RSI、成交量与价格结构，扫描一组股票的周线突破/背离形态。",
+        "weekly_pool_label": "股票池（用逗号分隔）",
+        "weekly_scan_button": "🔍 扫描周线信号",
+        "weekly_col_ticker": "股票代码",
+        "weekly_col_close": "收盘价",
+        "weekly_col_rsi": "RSI（14周）",
+        "weekly_col_signals": "信号",
+        "weekly_no_signals": "所输入股票池本周未触发任何周线信号。",
+        "weekly_errors_caption": "无法检查：{tickers}",
+        "err_insufficient_data": "{ticker} 的周线历史数据不足。",
+        "sig_bull_div": "🧲 周线看涨背离",
+        "sig_sos_breakout": "💥 周线放量突破",
+        "sig_bear_div": "💀 周线看跌背离",
     },
 }
 
@@ -218,6 +246,8 @@ if "buy_results" not in st.session_state:
     st.session_state.buy_results = []
 if "sell_result" not in st.session_state:
     st.session_state.sell_result = None
+if "weekly_results" not in st.session_state:
+    st.session_state.weekly_results = None
 
 L = TXT[st.session_state.lang]
 
@@ -500,6 +530,85 @@ def compute_sell_signal(ticker_symbol: str, entry_price: float, take_profit_pct:
         return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def compute_weekly_signals(ticker_symbol: str) -> dict:
+    try:
+        df = yf.download(ticker_symbol, period="2y", interval="1wk", progress=False)
+        if df.empty or len(df) < 30:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        close = df["Close"]
+        high = df["High"]
+        low = df["Low"]
+        volume = df["Volume"]
+        open_p = df["Open"]
+
+        # Weekly 14-period RSI
+        delta = close.diff()
+        gain = delta.where(delta > 0, 0).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss
+        rsi14 = 100 - (100 / (1 + rs))
+
+        # 12-week volume MA & 12-week resistance level
+        vol_ma12 = volume.rolling(12).mean()
+        tr_high_12w = high.shift(1).rolling(12).max()
+
+        curr_close = float(close.iloc[-1])
+        curr_open = float(open_p.iloc[-1])
+        curr_high = float(high.iloc[-1])
+        curr_low = float(low.iloc[-1])
+        curr_vol = float(volume.iloc[-1])
+        curr_rsi = float(rsi14.iloc[-1])
+
+        prev_tr_high = float(tr_high_12w.iloc[-1])
+        avg_vol = float(vol_ma12.iloc[-1])
+
+        signal_keys = []
+
+        # Signal 1: Weekly Bullish Divergence
+        # (Price hits a 12-week low + RSI is above its prior 12-week minimum by >3
+        # + RSI < 45 + a rebound candle confirms it)
+        low_12w_prev = float(low.shift(1).rolling(12).min().iloc[-1])
+        rsi_12w_prev_min = float(rsi14.shift(1).rolling(12).min().iloc[-1])
+        is_bottom_rebound = (curr_close > curr_open) or (curr_close > curr_low * 1.01)
+
+        if (curr_low < low_12w_prev and curr_rsi > rsi_12w_prev_min + 3
+                and curr_rsi < 45 and is_bottom_rebound):
+            signal_keys.append("bull_div")
+
+        # Signal 2: Weekly SOS Breakout
+        # (Close breaks the 12-week high + weekly body gain > 2% + volume > 1.2x
+        # the 12-week average)
+        if (curr_close > prev_tr_high and curr_close > curr_open * 1.02
+                and curr_vol > avg_vol * 1.20):
+            signal_keys.append("sos_breakout")
+
+        # Signal 3: Weekly Bearish Divergence
+        # (Price hits a 20-week high + RSI weakens vs. its prior 20-week max +
+        # weekly red candle + RSI still > 58)
+        high_20w_prev = float(high.shift(1).rolling(20).max().iloc[-1])
+        rsi_20w_prev_max = float(rsi14.shift(1).rolling(20).max().iloc[-1])
+        prev_close = float(close.iloc[-2])
+
+        if (curr_high > high_20w_prev and curr_rsi < rsi_20w_prev_max - 4
+                and curr_close < prev_close and curr_rsi > 58):
+            signal_keys.append("bear_div")
+
+        return {
+            "ok": True,
+            "ticker": ticker_symbol,
+            "close": curr_close,
+            "rsi": curr_rsi,
+            "signal_keys": signal_keys,
+        }
+    except Exception as e:
+        return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
+
+
 def render_buy_card(r: dict, L: dict):
     with st.container(border=True):
         st.markdown(f"#### {r['ticker']}")
@@ -572,6 +681,28 @@ def render_sell_card(r: dict, L: dict):
             "hold": st.info,
         }[verdict]
         box(f"**{title}**\n\n{detail}")
+
+
+def render_weekly_results(results: list, L: dict):
+    matched = [r for r in results if r.get("ok") and r["signal_keys"]]
+    errored = [r for r in results if not r.get("ok")]
+
+    if matched:
+        table_rows = [
+            {
+                L["weekly_col_ticker"]: r["ticker"],
+                L["weekly_col_close"]: f"${r['close']:.2f}",
+                L["weekly_col_rsi"]: f"{r['rsi']:.1f}",
+                L["weekly_col_signals"]: " | ".join(L[f"sig_{k}"] for k in r["signal_keys"]),
+            }
+            for r in matched
+        ]
+        st.dataframe(pd.DataFrame(table_rows), use_container_width=True, hide_index=True)
+    elif not errored:
+        st.info(L["weekly_no_signals"])
+
+    if errored:
+        st.caption(L["weekly_errors_caption"].format(tickers=", ".join(r["ticker"] for r in errored)))
 
 
 # ========================================================================
@@ -857,5 +988,24 @@ else:
 
     if st.session_state.sell_result:
         render_sell_card(st.session_state.sell_result, L)
+
+    st.write("")
+    st.divider()
+
+    # --- Weekly signal scanner ---
+    st.subheader(L["weekly_section_title"])
+    st.caption(L["weekly_section_desc"])
+    weekly_pool_input = st.text_input(
+        L["weekly_pool_label"],
+        value="AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA, AMD, NFLX, QCOM, RMBS, GM, BMY",
+        key="weekly_pool_input",
+    )
+    if st.button(L["weekly_scan_button"], key="weekly_scan_btn"):
+        tickers = [t.strip().upper() for t in weekly_pool_input.split(",") if t.strip()]
+        with st.spinner(L["loading"]):
+            st.session_state.weekly_results = [compute_weekly_signals(t) for t in tickers]
+
+    if st.session_state.weekly_results is not None:
+        render_weekly_results(st.session_state.weekly_results, L)
 
 st.caption(L["footer"])
