@@ -11,6 +11,7 @@ signals (stop-loss / take-profit vs. options call-wall resistance).
 Run with:  streamlit run app.py
 """
 
+import concurrent.futures
 import json
 import os
 
@@ -21,6 +22,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
+from fpdf import FPDF
 
 # ----------------------------------------------------------------------
 # PAGE CONFIG
@@ -136,6 +138,11 @@ TXT = {
         "weekly_errors_caption": "Couldn't check: {tickers}",
         "weekly_screened_caption": "Didn't meet the size screen (Market Cap ≥ $1.6B, Float ≥ 400M): {tickers}",
         "weekly_download_button": "⬇️ Download Results (CSV)",
+        "full_scan_title": "Full Market Scan (Pre-Screened List)",
+        "full_scan_desc": "Runs the weekly scanner across all {count} stocks that already passed the size screen (Market Cap ≥ $1.6B, Float ≥ 400M) — no need to type anything. This takes a few minutes.",
+        "full_scan_button": "🚀 Scan All {count} Pre-Screened Stocks",
+        "full_scan_pdf_button": "⬇️ Download Full Report (PDF)",
+        "weekly_full_scan_progress": "Scanning {done}/{total} — {ticker}",
         "err_insufficient_data": "Not enough weekly price history for {ticker}.",
         "sig_bull_div": "🧲 Weekly Bullish Divergence",
         "sig_sos_breakout": "💥 Weekly SOS Breakout",
@@ -241,6 +248,11 @@ TXT = {
         "weekly_errors_caption": "无法检查：{tickers}",
         "weekly_screened_caption": "未通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）：{tickers}",
         "weekly_download_button": "⬇️ 下载结果（CSV）",
+        "full_scan_title": "全市场扫描（预筛选列表）",
+        "full_scan_desc": "对已通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）的全部 {count} 支股票运行周线扫描 — 无需手动输入。此过程需要几分钟。",
+        "full_scan_button": "🚀 扫描全部 {count} 支预筛选股票",
+        "full_scan_pdf_button": "⬇️ 下载完整报告（PDF）",
+        "weekly_full_scan_progress": "正在扫描 {done}/{total} — {ticker}",
         "err_insufficient_data": "{ticker} 的周线历史数据不足。",
         "sig_bull_div": "🧲 周线看涨背离",
         "sig_sos_breakout": "💥 周线放量突破",
@@ -341,18 +353,27 @@ SP500_LARGE_CAP = [
 ]
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def load_screened_universe() -> list:
+def load_screened_universe_full() -> list:
     """Pre-screened US stocks (Market Cap >= $1.6B, Float >= 400M) built
     offline by build_ticker_universe.py -- see that script to refresh.
-    Falls back to the smaller hand-picked S&P 500 list if the data file
-    is ever missing, so the picker never breaks."""
+    Returns full records (ticker, name, market_cap, float_shares).
+    Empty list if the data file is ever missing (callers fall back
+    appropriately -- the picker to SP500_LARGE_CAP, the full-scan
+    button just won't have anything to scan)."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "us_stocks_screened.json")
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return [(r["ticker"], r["name"]) for r in data]
+            return json.load(f)
     except Exception:
+        return []
+
+
+def load_screened_universe() -> list:
+    """(ticker, name) pairs for the ticker-picker dropdown."""
+    full = load_screened_universe_full()
+    if not full:
         return SP500_LARGE_CAP
+    return [(r["ticker"], r["name"]) for r in full]
 
 
 TICKER_UNIVERSE = sorted(
@@ -389,6 +410,8 @@ if "sell_result" not in st.session_state:
     st.session_state.sell_result = None
 if "weekly_results" not in st.session_state:
     st.session_state.weekly_results = None
+if "full_scan_results" not in st.session_state:
+    st.session_state.full_scan_results = None
 
 L = TXT[st.session_state.lang]
 
@@ -676,25 +699,13 @@ MIN_FLOAT_SHARES = 4.0e8  # 400 million shares
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def compute_weekly_signals(ticker_symbol: str) -> dict:
+def compute_weekly_pattern(ticker_symbol: str, market_cap: float = 0.0, float_shares: float = 0.0) -> dict:
+    """Weekly technical pattern check only -- no fundamentals fetch. Pass
+    market_cap/float_shares through if already known (e.g. from the
+    pre-screened universe) so they ride along in the result without an
+    extra API call."""
     try:
-        stock = yf.Ticker(ticker_symbol)
-
-        # --- Fundamental screen: Market Cap >= $1.6B, Float Shares >= 400M ---
-        info = stock.info
-        market_cap = info.get("marketCap", 0) or 0
-        float_shares = info.get("floatShares") or info.get("sharesOutstanding", 0) or 0
-
-        if market_cap < MIN_MARKET_CAP or float_shares < MIN_FLOAT_SHARES:
-            return {
-                "ok": False,
-                "ticker": ticker_symbol,
-                "error_key": "err_fundamentals_screen",
-                "market_cap": market_cap,
-                "float_shares": float_shares,
-            }
-
-        df = stock.history(period="2y", interval="1wk")
+        df = yf.Ticker(ticker_symbol).history(period="2y", interval="1wk")
         if df.empty or len(df) < 30:
             return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
@@ -770,6 +781,29 @@ def compute_weekly_signals(ticker_symbol: str) -> dict:
         }
     except Exception as e:
         return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def compute_weekly_signals(ticker_symbol: str) -> dict:
+    """Manual-pool version: screens fundamentals first (ticker isn't
+    known to be pre-screened), then delegates to compute_weekly_pattern."""
+    try:
+        info = yf.Ticker(ticker_symbol).info
+        market_cap = info.get("marketCap", 0) or 0
+        float_shares = info.get("floatShares") or info.get("sharesOutstanding", 0) or 0
+
+        if market_cap < MIN_MARKET_CAP or float_shares < MIN_FLOAT_SHARES:
+            return {
+                "ok": False,
+                "ticker": ticker_symbol,
+                "error_key": "err_fundamentals_screen",
+                "market_cap": market_cap,
+                "float_shares": float_shares,
+            }
+    except Exception as e:
+        return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
+
+    return compute_weekly_pattern(ticker_symbol, market_cap, float_shares)
 
 
 def render_buy_card(r: dict, L: dict):
@@ -880,6 +914,90 @@ def render_weekly_results(results: list, L: dict):
         st.caption(L["weekly_screened_caption"].format(tickers=", ".join(r["ticker"] for r in screened_out)))
     if errored:
         st.caption(L["weekly_errors_caption"].format(tickers=", ".join(r["ticker"] for r in errored)))
+
+
+# PDF text is kept plain-ASCII English regardless of UI language: fpdf2's
+# built-in core fonts (Helvetica etc.) only support latin-1, so neither
+# emoji nor Chinese characters render correctly without embedding a custom
+# Unicode font. The on-screen results stay fully translated either way.
+PDF_SIGNAL_NAMES = {
+    "bull_div": "Weekly Bullish Divergence",
+    "sos_breakout": "Weekly SOS Breakout",
+    "bear_div": "Weekly Bearish Divergence",
+}
+
+
+def build_weekly_pdf(matched: list, universe_size: int) -> bytes:
+    pdf = FPDF()
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, "Weekly Signal Scan Report", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Universe scanned: {universe_size} US stocks (Market Cap >= $1.6B, Float Shares >= 400M)",
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Signals triggered: {len(matched)}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    if matched:
+        col_widths = [18, 20, 24, 24, 15, 90]
+        headers = ["Ticker", "Close", "MCap ($B)", "Float (M)", "RSI", "Signals"]
+        pdf.set_font("Helvetica", "B", 9)
+        for w, h in zip(col_widths, headers):
+            pdf.cell(w, 7, h, border=1)
+        pdf.ln()
+
+        pdf.set_font("Helvetica", "", 8)
+        for r in matched:
+            row = [
+                r["ticker"],
+                f"${r['close']:.2f}",
+                f"{r['market_cap'] / 1e9:.2f}",
+                f"{r['float_shares'] / 1e6:.1f}",
+                f"{r['rsi']:.1f}",
+                ", ".join(PDF_SIGNAL_NAMES[k] for k in r["signal_keys"]),
+            ]
+            for w, val in zip(col_widths, row):
+                pdf.cell(w, 6, str(val), border=1)
+            pdf.ln()
+    else:
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 6, "No signals triggered this week.", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.multi_cell(0, 5, "This tool is for educational purposes only and is not financial advice.")
+
+    return bytes(pdf.output())
+
+
+def run_full_universe_scan(universe: list, L: dict) -> list:
+    """Runs the weekly pattern check across the full pre-screened
+    universe with a live progress bar. Modest concurrency (5 workers)
+    to stay gentle on Yahoo Finance's rate limits -- this hits the
+    price-history endpoint, not the heavier .info endpoint, and the
+    universe is pre-screened so no fundamentals calls are needed here."""
+    total = len(universe)
+    progress_bar = st.progress(0.0)
+    status = st.empty()
+    results = []
+    done = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+        futures = {
+            ex.submit(compute_weekly_pattern, r["ticker"], r["market_cap"], r["float_shares"]): r["ticker"]
+            for r in universe
+        }
+        for fut in concurrent.futures.as_completed(futures):
+            done += 1
+            ticker = futures[fut]
+            progress_bar.progress(done / total)
+            status.text(L["weekly_full_scan_progress"].format(done=done, total=total, ticker=ticker))
+            results.append(fut.result())
+    status.empty()
+    progress_bar.empty()
+    return results
 
 
 # ========================================================================
@@ -1199,5 +1317,28 @@ else:
 
     if st.session_state.weekly_results is not None:
         render_weekly_results(st.session_state.weekly_results, L)
+
+    st.write("")
+    st.divider()
+
+    # --- Full pre-screened universe scan ---
+    st.subheader(L["full_scan_title"])
+    full_universe = load_screened_universe_full()
+    st.caption(L["full_scan_desc"].format(count=len(full_universe)))
+
+    if st.button(L["full_scan_button"].format(count=len(full_universe)), key="full_scan_btn", disabled=not full_universe):
+        st.session_state.full_scan_results = run_full_universe_scan(full_universe, L)
+
+    if st.session_state.full_scan_results is not None:
+        render_weekly_results(st.session_state.full_scan_results, L)
+        matched = [r for r in st.session_state.full_scan_results if r.get("ok") and r["signal_keys"]]
+        matched.sort(key=lambda r: r.get("market_cap", 0), reverse=True)
+        pdf_bytes = build_weekly_pdf(matched, len(full_universe))
+        st.download_button(
+            L["full_scan_pdf_button"],
+            data=pdf_bytes,
+            file_name="weekly_signal_scan_report.pdf",
+            mime="application/pdf",
+        )
 
 st.caption(L["footer"])
