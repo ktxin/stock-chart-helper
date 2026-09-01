@@ -706,11 +706,23 @@ def compute_weekly_pattern(ticker_symbol: str, market_cap: float = 0.0, float_sh
     extra API call."""
     try:
         df = yf.Ticker(ticker_symbol).history(period="2y", interval="1wk")
-        if df.empty or len(df) < 30:
+        if df.empty:
             return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
+
+        # yfinance's most recent weekly bar is the CURRENT, still-forming
+        # week (indexed by that week's Monday) and keeps updating live
+        # until the week actually closes -- e.g. on a Monday it's just
+        # that one day's OHLCV masquerading as a full week. Drop it so
+        # every calculation below only sees fully completed weeks.
+        now_local = pd.Timestamp.now(tz=df.index.tz)
+        if df.index[-1].isocalendar()[:2] == now_local.isocalendar()[:2]:
+            df = df.iloc[:-1]
+
+        if len(df) < 30:
+            return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
         close = df["Close"]
         high = df["High"]
