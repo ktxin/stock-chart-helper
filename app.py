@@ -39,12 +39,12 @@ st.set_page_config(
 # ----------------------------------------------------------------------
 TXT = {
     "en": {
-        "title": "📈 Stock Chart Helper",
+        "title": "Stock Chart Helper",
         "subtitle": "Type a stock symbol below to see how it's doing.",
         "lang_toggle": "中文 (Mandarin)",
         "ticker_label": "Stock Symbol",
         "ticker_help": "Example: AAPL for Apple, TSLA for Tesla",
-        "ticker_picker_label": "🔎 Search & pick a stock (or type below)",
+        "ticker_picker_label": ":material/search: Search & pick a stock (or type below)",
         "ticker_picker_placeholder": "— Type your own below —",
         "period_label": "Time Range",
         "interval_label": "Chart Type",
@@ -55,42 +55,42 @@ TXT = {
         "price": "Price",
         "change": "Today's Change",
         "state": "Current Signal",
-        "state_bull_accel": "🔴 Bullish Acceleration",
-        "state_bull_decel": "🟤 Bullish Deceleration (Warning)",
-        "state_bear_accel": "🔵 Bearish Acceleration",
-        "state_bear_decel": "🔷 Bearish Deceleration (Bottoming)",
-        "state_squeeze": "🟢 Squeeze Active (Low Volatility)",
-        "state_neutral": "⚪ Neutral",
+        "state_bull_accel": ":material/trending_up: Bullish Acceleration",
+        "state_bull_decel": ":material/trending_flat: Bullish Deceleration (Warning)",
+        "state_bear_accel": ":material/trending_down: Bearish Acceleration",
+        "state_bear_decel": ":material/north_east: Bearish Deceleration (Bottoming)",
+        "state_squeeze": ":material/compress: Squeeze Active (Low Volatility)",
+        "state_neutral": ":material/remove: Neutral",
         "chart1_title": "Price Chart",
         "chart2_title": "Volume Flow (OBV)",
         "chart3_title": "Momentum & Squeeze",
         "footer": "This tool is for educational purposes only and is not financial advice.",
-        "gamma": "⚡Gamma Squeeze",
-        "decel": "🛑Deceleration",
-        "breakout": "💥Breakout",
+        "gamma": "Gamma Squeeze",
+        "decel": "Deceleration",
+        "breakout": "Breakout",
         "golden_cross": "OBV Golden Cross",
         "put_wall_line_label": "Put Wall (Support)",
         "call_wall_line_label": "Call Wall (Resistance)",
         "buy_arrow_label": "Buy Signal",
         "sell_arrow_label": "Sell/Caution Signal",
         # --- mode toggle ---
-        "to_signals_btn": "📡 Buy/Sell Signals",
-        "to_chart_btn": "📈 Back to Chart",
+        "to_signals_btn": ":material/candlestick_chart: Buy/Sell Signals",
+        "to_chart_btn": ":material/show_chart: Back to Chart",
         # --- signals page ---
-        "signal_title": "📡 Buy/Sell Signal Scanner",
+        "signal_title": "Buy/Sell Signal Scanner",
         "signal_subtitle": "Rule-based signals from price drawdown and options positioning.",
-        "signal_disclaimer": "⚠️ This is an automated heuristic tool, not financial advice. Always do your own research before buying or selling.",
+        "signal_disclaimer": ":material/warning: This is an automated heuristic tool, not financial advice. Always do your own research before buying or selling.",
         "buy_section_title": "Buy Signal Scanner",
         "buy_section_desc": "Enter one or more stock symbols to check if now looks like a good time to consider buying.",
         "watchlist_label": "Stock Symbols (comma-separated)",
-        "scan_button": "🔍 Scan",
+        "scan_button": ":material/search: Scan",
         "sell_section_title": "Sell / Take-Profit Monitor",
         "sell_section_desc": "Track a position you already own and see if it's time to sell.",
         "sell_ticker_label": "Stock Symbol",
         "entry_price_label": "Your Buy Price ($)",
         "take_profit_label": "Take-Profit Target (%)",
         "stop_loss_label": "Stop-Loss Limit (%)",
-        "check_button": "✅ Check",
+        "check_button": ":material/check_circle: Check",
         "current_price_label": "Current Price",
         "drawdown_label": "Drop From 52-Week High",
         "put_wall_label": "Support Level (Put Wall)",
@@ -102,23 +102,23 @@ TXT = {
         "call_wall_label": "Resistance Level (Call Wall)",
         "pnl_label": "Current Profit/Loss",
         "entry_price_display_label": "Your Buy Price",
-        "buy_verdict_signal_title": "🎯 High-Confidence Buy Signal",
+        "buy_verdict_signal_title": ":material/track_changes: High-Confidence Buy Signal",
         "buy_verdict_signal_detail": "Down {drawdown:.1f}% from its high and trading near the support level (${wall:.2f}).",
-        "buy_verdict_broken_title": "⚠️ Support Broken — Wait",
+        "buy_verdict_broken_title": ":material/warning: Support Broken — Wait",
         "buy_verdict_broken_detail": "Price has fallen more than 10% below the support level (${wall:.2f}).",
-        "buy_verdict_wait_title": "⏳ Not Yet — Keep Watching",
+        "buy_verdict_wait_title": ":material/hourglass_top: Not Yet — Keep Watching",
         "buy_verdict_wait_detail": "Price is down a lot, but hasn't reached the support level (~${wall:.2f}) yet.",
-        "buy_verdict_none_title": "❌ Not Oversold",
+        "buy_verdict_none_title": ":material/block: Not Oversold",
         "buy_verdict_none_detail": "Only down {drawdown:.1f}% from its high (this tool looks for -25% or more).",
-        "sell_verdict_stoploss_title": "🚨 Stop-Loss Triggered",
+        "sell_verdict_stoploss_title": ":material/error: Stop-Loss Triggered",
         "sell_verdict_stoploss_detail": "Loss of {pnl:.1f}% has hit your stop-loss limit ({limit:.1f}%). Consider selling.",
-        "sell_verdict_break_title": "🚨 Support Broken — Stop-Loss",
+        "sell_verdict_break_title": ":material/error: Support Broken — Stop-Loss",
         "sell_verdict_break_detail": "Price has fallen more than 5% below the support level (${wall_put:.2f}).",
-        "sell_verdict_resistance_title": "🎉 Near Resistance — Take Profit",
+        "sell_verdict_resistance_title": ":material/celebration: Near Resistance — Take Profit",
         "sell_verdict_resistance_detail": "Price is approaching the resistance level (${wall_call:.2f}). Consider selling part of your position.",
-        "sell_verdict_target_title": "🎉 Target Reached — Take Profit",
+        "sell_verdict_target_title": ":material/celebration: Target Reached — Take Profit",
         "sell_verdict_target_detail": "Gain of {pnl:.1f}% has hit your target ({target:.1f}%). Consider taking some profit.",
-        "sell_verdict_hold_title": "⏸️ Hold",
+        "sell_verdict_hold_title": ":material/pause_circle: Hold",
         "sell_verdict_hold_detail": "No exit conditions met yet.",
         "err_no_price": "Couldn't fetch price data for {ticker}.",
         "err_no_options": "No options data available for {ticker}.",
@@ -127,34 +127,35 @@ TXT = {
         "weekly_section_title": "Weekly Signal Scanner",
         "weekly_section_desc": "Scans a list of stocks for weekly breakout/divergence patterns using RSI, volume, and price structure.",
         "weekly_pool_label": "Stock Pool (comma-separated)",
-        "weekly_scan_button": "🔍 Scan Weekly Signals",
+        "weekly_scan_button": ":material/search: Scan Weekly Signals",
         "weekly_col_ticker": "Ticker",
         "weekly_col_close": "Close",
         "weekly_col_market_cap": "Market Cap ($B)",
         "weekly_col_float": "Float Shares (M)",
-        "weekly_col_rsi": "RSI (14w)",
+        "weekly_col_rsi": "RSI (14)",
         "weekly_col_signals": "Signals",
         "weekly_no_signals": "No weekly signals triggered this week for the entered stock pool.",
         "weekly_errors_caption": "Couldn't check: {tickers}",
         "weekly_screened_caption": "Didn't meet the size screen (Market Cap ≥ $1.6B, Float ≥ 400M): {tickers}",
-        "weekly_download_button": "⬇️ Download Results (CSV)",
+        "weekly_download_button": ":material/download: Download Results (CSV)",
         "full_scan_title": "Full Market Scan (Pre-Screened List)",
-        "full_scan_desc": "Runs the weekly scanner across all {count} stocks that already passed the size screen (Market Cap ≥ $1.6B, Float ≥ 400M) — no need to type anything. This takes a few minutes.",
-        "full_scan_button": "🚀 Scan All {count} Pre-Screened Stocks",
-        "full_scan_pdf_button": "⬇️ Download Full Report (PDF)",
+        "full_scan_desc": "Runs the scanner across all {count} stocks that already passed the size screen (Market Cap ≥ $1.6B, Float ≥ 400M) — no need to type anything. This takes a few minutes.",
+        "full_scan_interval_label": "Candle Interval",
+        "full_scan_button": ":material/rocket_launch: Scan All {count} Pre-Screened Stocks",
+        "full_scan_pdf_button": ":material/download: Download Full Report (PDF)",
         "weekly_full_scan_progress": "Scanning {done}/{total} — {ticker}",
-        "err_insufficient_data": "Not enough weekly price history for {ticker}.",
-        "sig_bull_div": "🧲 Weekly Bullish Divergence",
-        "sig_sos_breakout": "💥 Weekly SOS Breakout",
-        "sig_bear_div": "💀 Weekly Bearish Divergence",
+        "err_insufficient_data": "Not enough price history for {ticker}.",
+        "pattern_bull_div": "Bullish Divergence",
+        "pattern_sos_breakout": "SOS Breakout",
+        "pattern_bear_div": "Bearish Divergence",
     },
     "zh": {
-        "title": "📈 股票图表助手",
+        "title": "股票图表助手",
         "subtitle": "在下方输入股票代码，查看它的走势。",
         "lang_toggle": "English",
         "ticker_label": "股票代码",
         "ticker_help": "例如：AAPL 代表苹果公司，TSLA 代表特斯拉",
-        "ticker_picker_label": "🔎 搜索并选择股票（或在下方手动输入）",
+        "ticker_picker_label": ":material/search: 搜索并选择股票（或在下方手动输入）",
         "ticker_picker_placeholder": "— 在下方手动输入 —",
         "period_label": "时间范围",
         "interval_label": "图表类型",
@@ -165,42 +166,42 @@ TXT = {
         "price": "价格",
         "change": "今日涨跌",
         "state": "当前信号",
-        "state_bull_accel": "🔴 看涨加速",
-        "state_bull_decel": "🟤 看涨减速（警告）",
-        "state_bear_accel": "🔵 看跌加速",
-        "state_bear_decel": "🔷 看跌减速（触底）",
-        "state_squeeze": "🟢 挤压中（波动率低）",
-        "state_neutral": "⚪ 中性",
+        "state_bull_accel": ":material/trending_up: 看涨加速",
+        "state_bull_decel": ":material/trending_flat: 看涨减速（警告）",
+        "state_bear_accel": ":material/trending_down: 看跌加速",
+        "state_bear_decel": ":material/north_east: 看跌减速（触底）",
+        "state_squeeze": ":material/compress: 挤压中（波动率低）",
+        "state_neutral": ":material/remove: 中性",
         "chart1_title": "价格图",
         "chart2_title": "资金流向 (OBV)",
         "chart3_title": "动能与挤压",
         "footer": "本工具仅供学习参考，不构成投资建议。",
-        "gamma": "⚡伽玛挤压",
-        "decel": "🛑减速",
-        "breakout": "💥突破",
+        "gamma": "伽玛挤压",
+        "decel": "减速",
+        "breakout": "突破",
         "golden_cross": "OBV 黄金交叉",
         "put_wall_line_label": "Put 防守墙（支撑）",
         "call_wall_line_label": "Call 阻力墙（阻力）",
         "buy_arrow_label": "买入信号",
         "sell_arrow_label": "卖出/谨慎信号",
         # --- mode toggle ---
-        "to_signals_btn": "📡 买卖信号",
-        "to_chart_btn": "📈 返回图表",
+        "to_signals_btn": ":material/candlestick_chart: 买卖信号",
+        "to_chart_btn": ":material/show_chart: 返回图表",
         # --- signals page ---
-        "signal_title": "📡 买卖信号扫描器",
+        "signal_title": "买卖信号扫描器",
         "signal_subtitle": "基于价格回撤和期权持仓的规则化信号。",
-        "signal_disclaimer": "⚠️ 这是一个自动化的启发式工具，不构成投资建议。做出买卖决定前请自行研究。",
+        "signal_disclaimer": ":material/warning: 这是一个自动化的启发式工具，不构成投资建议。做出买卖决定前请自行研究。",
         "buy_section_title": "买入信号扫描",
         "buy_section_desc": "输入一个或多个股票代码，查看现在是否适合考虑买入。",
         "watchlist_label": "股票代码（用逗号分隔）",
-        "scan_button": "🔍 扫描",
+        "scan_button": ":material/search: 扫描",
         "sell_section_title": "卖出 / 止盈监控",
         "sell_section_desc": "追踪你已持有的仓位，查看是否该卖出了。",
         "sell_ticker_label": "股票代码",
         "entry_price_label": "买入价格 ($)",
         "take_profit_label": "止盈目标 (%)",
         "stop_loss_label": "止损限制 (%)",
-        "check_button": "✅ 检查",
+        "check_button": ":material/check_circle: 检查",
         "current_price_label": "当前价格",
         "drawdown_label": "距52周高点跌幅",
         "put_wall_label": "支撑位（Put 防守墙）",
@@ -212,23 +213,23 @@ TXT = {
         "call_wall_label": "阻力位（Call 阻力墙）",
         "pnl_label": "当前盈亏",
         "entry_price_display_label": "买入价格",
-        "buy_verdict_signal_title": "🎯 高置信度买入信号",
+        "buy_verdict_signal_title": ":material/track_changes: 高置信度买入信号",
         "buy_verdict_signal_detail": "较高点已下跌 {drawdown:.1f}%，且接近支撑位 (${wall:.2f})。",
-        "buy_verdict_broken_title": "⚠️ 支撑位已破位 — 观望",
+        "buy_verdict_broken_title": ":material/warning: 支撑位已破位 — 观望",
         "buy_verdict_broken_detail": "价格已跌破支撑位 (${wall:.2f}) 10% 以上。",
-        "buy_verdict_wait_title": "⏳ 尚未到位 — 继续观察",
+        "buy_verdict_wait_title": ":material/hourglass_top: 尚未到位 — 继续观察",
         "buy_verdict_wait_detail": "价格已大幅下跌，但尚未到达支撑位（约 ${wall:.2f}）。",
-        "buy_verdict_none_title": "❌ 未达超跌条件",
+        "buy_verdict_none_title": ":material/block: 未达超跌条件",
         "buy_verdict_none_detail": "较高点仅下跌 {drawdown:.1f}%（本工具寻找 -25% 或以上）。",
-        "sell_verdict_stoploss_title": "🚨 触发固定止损",
+        "sell_verdict_stoploss_title": ":material/error: 触发固定止损",
         "sell_verdict_stoploss_detail": "亏损 {pnl:.1f}% 已触及止损限制 ({limit:.1f}%)，建议卖出。",
-        "sell_verdict_break_title": "🚨 支撑位破位 — 止损",
+        "sell_verdict_break_title": ":material/error: 支撑位破位 — 止损",
         "sell_verdict_break_detail": "价格已跌破支撑位 (${wall_put:.2f}) 5% 以上。",
-        "sell_verdict_resistance_title": "🎉 接近阻力位 — 止盈",
+        "sell_verdict_resistance_title": ":material/celebration: 接近阻力位 — 止盈",
         "sell_verdict_resistance_detail": "价格正接近阻力位 (${wall_call:.2f})，建议卖出部分仓位。",
-        "sell_verdict_target_title": "🎉 达到目标 — 止盈",
+        "sell_verdict_target_title": ":material/celebration: 达到目标 — 止盈",
         "sell_verdict_target_detail": "收益 {pnl:.1f}% 已达到目标 ({target:.1f}%)，建议获利了结部分仓位。",
-        "sell_verdict_hold_title": "⏸️ 继续持有",
+        "sell_verdict_hold_title": ":material/pause_circle: 继续持有",
         "sell_verdict_hold_detail": "尚未触发任何卖出条件。",
         "err_no_price": "无法获取 {ticker} 的价格数据。",
         "err_no_options": "没有 {ticker} 的期权数据。",
@@ -237,26 +238,27 @@ TXT = {
         "weekly_section_title": "周线信号扫描器",
         "weekly_section_desc": "使用 RSI、成交量与价格结构，扫描一组股票的周线突破/背离形态。",
         "weekly_pool_label": "股票池（用逗号分隔）",
-        "weekly_scan_button": "🔍 扫描周线信号",
+        "weekly_scan_button": ":material/search: 扫描周线信号",
         "weekly_col_ticker": "股票代码",
         "weekly_col_close": "收盘价",
         "weekly_col_market_cap": "市值（十亿美元）",
         "weekly_col_float": "流通股（百万股）",
-        "weekly_col_rsi": "RSI（14周）",
+        "weekly_col_rsi": "RSI（14）",
         "weekly_col_signals": "信号",
         "weekly_no_signals": "所输入股票池本周未触发任何周线信号。",
         "weekly_errors_caption": "无法检查：{tickers}",
         "weekly_screened_caption": "未通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）：{tickers}",
-        "weekly_download_button": "⬇️ 下载结果（CSV）",
+        "weekly_download_button": ":material/download: 下载结果（CSV）",
         "full_scan_title": "全市场扫描（预筛选列表）",
-        "full_scan_desc": "对已通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）的全部 {count} 支股票运行周线扫描 — 无需手动输入。此过程需要几分钟。",
-        "full_scan_button": "🚀 扫描全部 {count} 支预筛选股票",
-        "full_scan_pdf_button": "⬇️ 下载完整报告（PDF）",
+        "full_scan_desc": "对已通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）的全部 {count} 支股票运行扫描 — 无需手动输入。此过程需要几分钟。",
+        "full_scan_interval_label": "K线周期",
+        "full_scan_button": ":material/rocket_launch: 扫描全部 {count} 支预筛选股票",
+        "full_scan_pdf_button": ":material/download: 下载完整报告（PDF）",
         "weekly_full_scan_progress": "正在扫描 {done}/{total} — {ticker}",
-        "err_insufficient_data": "{ticker} 的周线历史数据不足。",
-        "sig_bull_div": "🧲 周线看涨背离",
-        "sig_sos_breakout": "💥 周线放量突破",
-        "sig_bear_div": "💀 周线看跌背离",
+        "err_insufficient_data": "{ticker} 的历史数据不足。",
+        "pattern_bull_div": "看涨背离",
+        "pattern_sos_breakout": "放量突破",
+        "pattern_bear_div": "看跌背离",
     },
 }
 
@@ -452,10 +454,10 @@ st.markdown(
 )
 
 if st.session_state.mode == "chart":
-    st.markdown(f"<div class='big-title'>{L['title']}</div>", unsafe_allow_html=True)
+    st.title(f":material/show_chart: {L['title']}")
     st.markdown(f"<div class='subtitle'>{L['subtitle']}</div>", unsafe_allow_html=True)
 else:
-    st.markdown(f"<div class='big-title'>{L['signal_title']}</div>", unsafe_allow_html=True)
+    st.title(f":material/candlestick_chart: {L['signal_title']}")
     st.markdown(f"<div class='subtitle'>{L['signal_subtitle']}</div>", unsafe_allow_html=True)
 st.write("")
 
@@ -699,26 +701,36 @@ MIN_FLOAT_SHARES = 4.0e8  # 400 million shares
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def compute_weekly_pattern(ticker_symbol: str, market_cap: float = 0.0, float_shares: float = 0.0) -> dict:
-    """Weekly technical pattern check only -- no fundamentals fetch. Pass
+def compute_weekly_pattern(
+    ticker_symbol: str, market_cap: float = 0.0, float_shares: float = 0.0, interval: str = "1wk"
+) -> dict:
+    """Technical pattern check only -- no fundamentals fetch. Works on
+    either weekly ("1wk") or daily ("1d") candles; the same 12/14/20-period
+    rule set just means 12/14/20 weeks or days depending on interval. Pass
     market_cap/float_shares through if already known (e.g. from the
     pre-screened universe) so they ride along in the result without an
     extra API call."""
     try:
-        df = yf.Ticker(ticker_symbol).history(period="2y", interval="1wk")
+        period = "2y" if interval == "1wk" else "1y"
+        df = yf.Ticker(ticker_symbol).history(period=period, interval=interval)
         if df.empty:
             return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        # yfinance's most recent weekly bar is the CURRENT, still-forming
-        # week (indexed by that week's Monday) and keeps updating live
-        # until the week actually closes -- e.g. on a Monday it's just
-        # that one day's OHLCV masquerading as a full week. Drop it so
-        # every calculation below only sees fully completed weeks.
+        # yfinance's most recent bar is the CURRENT, still-forming period
+        # and keeps updating live until that period actually closes -- on
+        # a Monday, a "weekly" bar is really just that one day's OHLCV
+        # masquerading as a full week (same idea for "today" on daily
+        # candles during market hours). Drop it so every calculation below
+        # only sees fully completed periods.
         now_local = pd.Timestamp.now(tz=df.index.tz)
-        if df.index[-1].isocalendar()[:2] == now_local.isocalendar()[:2]:
+        if interval == "1wk":
+            is_current_period = df.index[-1].isocalendar()[:2] == now_local.isocalendar()[:2]
+        else:
+            is_current_period = df.index[-1].date() == now_local.date()
+        if is_current_period:
             df = df.iloc[:-1]
 
         if len(df) < 30:
@@ -790,6 +802,7 @@ def compute_weekly_pattern(ticker_symbol: str, market_cap: float = 0.0, float_sh
             "signal_keys": signal_keys,
             "market_cap": market_cap,
             "float_shares": float_shares,
+            "interval": interval,
         }
     except Exception as e:
         return {"ok": False, "ticker": ticker_symbol, "error_key": "err_generic", "error": str(e)}
@@ -892,6 +905,11 @@ def render_sell_card(r: dict, L: dict):
         box(f"**{title}**\n\n{detail}")
 
 
+def format_signal_names(signal_keys: list, interval: str, L: dict) -> str:
+    period_word = L["weekly"] if interval == "1wk" else L["daily"]
+    return " | ".join(f"{period_word} {L[f'pattern_{k}']}" for k in signal_keys)
+
+
 def render_weekly_results(results: list, L: dict):
     matched = [r for r in results if r.get("ok") and r["signal_keys"]]
     ok_no_signal = [r for r in results if r.get("ok") and not r["signal_keys"]]
@@ -907,7 +925,7 @@ def render_weekly_results(results: list, L: dict):
                 L["weekly_col_market_cap"]: f"{r['market_cap'] / 1e9:.2f}",
                 L["weekly_col_float"]: f"{r['float_shares'] / 1e6:.1f}",
                 L["weekly_col_rsi"]: f"{r['rsi']:.1f}",
-                L["weekly_col_signals"]: " | ".join(L[f"sig_{k}"] for k in r["signal_keys"]),
+                L["weekly_col_signals"]: format_signal_names(r["signal_keys"], r.get("interval", "1wk"), L),
             }
             for r in matched
         ]
@@ -932,22 +950,29 @@ def render_weekly_results(results: list, L: dict):
 # built-in core fonts (Helvetica etc.) only support latin-1, so neither
 # emoji nor Chinese characters render correctly without embedding a custom
 # Unicode font. The on-screen results stay fully translated either way.
-PDF_SIGNAL_NAMES = {
-    "bull_div": "Weekly Bullish Divergence",
-    "sos_breakout": "Weekly SOS Breakout",
-    "bear_div": "Weekly Bearish Divergence",
+PDF_PATTERN_NAMES = {
+    "bull_div": "Bullish Divergence",
+    "sos_breakout": "SOS Breakout",
+    "bear_div": "Bearish Divergence",
 }
 
 
-def build_weekly_pdf(matched: list, universe_size: int) -> bytes:
+def format_signal_names_pdf(signal_keys: list, interval: str) -> str:
+    period_word = "Weekly" if interval == "1wk" else "Daily"
+    return ", ".join(f"{period_word} {PDF_PATTERN_NAMES[k]}" for k in signal_keys)
+
+
+def build_weekly_pdf(matched: list, universe_size: int, interval: str = "1wk") -> bytes:
+    period_word = "Weekly" if interval == "1wk" else "Daily"
     pdf = FPDF()
     pdf.add_page()
 
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "Weekly Signal Scan Report", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, f"{period_word} Signal Scan Report", new_x="LMARGIN", new_y="NEXT")
 
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Candle interval: {period_word}", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 6, f"Universe scanned: {universe_size} US stocks (Market Cap >= $1.6B, Float Shares >= 400M)",
              new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 6, f"Signals triggered: {len(matched)}", new_x="LMARGIN", new_y="NEXT")
@@ -969,7 +994,7 @@ def build_weekly_pdf(matched: list, universe_size: int) -> bytes:
                 f"{r['market_cap'] / 1e9:.2f}",
                 f"{r['float_shares'] / 1e6:.1f}",
                 f"{r['rsi']:.1f}",
-                ", ".join(PDF_SIGNAL_NAMES[k] for k in r["signal_keys"]),
+                format_signal_names_pdf(r["signal_keys"], r.get("interval", "1wk")),
             ]
             for w, val in zip(col_widths, row):
                 pdf.cell(w, 6, str(val), border=1)
@@ -985,8 +1010,8 @@ def build_weekly_pdf(matched: list, universe_size: int) -> bytes:
     return bytes(pdf.output())
 
 
-def run_full_universe_scan(universe: list, L: dict) -> list:
-    """Runs the weekly pattern check across the full pre-screened
+def run_full_universe_scan(universe: list, L: dict, interval: str = "1wk") -> list:
+    """Runs the technical pattern check across the full pre-screened
     universe with a live progress bar. Modest concurrency (5 workers)
     to stay gentle on Yahoo Finance's rate limits -- this hits the
     price-history endpoint, not the heavier .info endpoint, and the
@@ -998,7 +1023,7 @@ def run_full_universe_scan(universe: list, L: dict) -> list:
     done = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
         futures = {
-            ex.submit(compute_weekly_pattern, r["ticker"], r["market_cap"], r["float_shares"]): r["ticker"]
+            ex.submit(compute_weekly_pattern, r["ticker"], r["market_cap"], r["float_shares"], interval): r["ticker"]
             for r in universe
         }
         for fut in concurrent.futures.as_completed(futures):
@@ -1338,14 +1363,20 @@ else:
     full_universe = load_screened_universe_full()
     st.caption(L["full_scan_desc"].format(count=len(full_universe)))
 
+    full_scan_interval_choice = st.radio(
+        L["full_scan_interval_label"], [L["weekly"], L["daily"]], horizontal=True, key="full_scan_interval"
+    )
+    full_scan_interval = "1wk" if full_scan_interval_choice == L["weekly"] else "1d"
+
     if st.button(L["full_scan_button"].format(count=len(full_universe)), key="full_scan_btn", disabled=not full_universe):
-        st.session_state.full_scan_results = run_full_universe_scan(full_universe, L)
+        st.session_state.full_scan_results = run_full_universe_scan(full_universe, L, full_scan_interval)
 
     if st.session_state.full_scan_results is not None:
         render_weekly_results(st.session_state.full_scan_results, L)
         matched = [r for r in st.session_state.full_scan_results if r.get("ok") and r["signal_keys"]]
         matched.sort(key=lambda r: r.get("market_cap", 0), reverse=True)
-        pdf_bytes = build_weekly_pdf(matched, len(full_universe))
+        result_interval = matched[0]["interval"] if matched else full_scan_interval
+        pdf_bytes = build_weekly_pdf(matched, len(full_universe), result_interval)
         st.download_button(
             L["full_scan_pdf_button"],
             data=pdf_bytes,
