@@ -50,6 +50,7 @@ TXT = {
         "interval_label": "Chart Type",
         "daily": "Daily",
         "weekly": "Weekly",
+        "monthly": "Monthly",
         "loading": "Fetching data...",
         "error_no_data": "No data found for this symbol. Please check the spelling and try again.",
         "price": "Price",
@@ -140,7 +141,10 @@ TXT = {
         "weekly_download_button": ":material/download: Download Results (CSV)",
         "full_scan_title": "Full Market Scan (Pre-Screened List)",
         "full_scan_desc": "Runs the scanner across all {count} stocks that already passed the size screen (Market Cap ≥ $1.6B, Float ≥ 400M) — no need to type anything. This takes a few minutes.",
-        "full_scan_interval_label": "Candle Interval",
+        "full_scan_interval_label": "Candle Interval & Lookback",
+        "full_scan_option_daily": "Daily — past 12 months ({start} to {end})",
+        "full_scan_option_weekly": "Weekly — past 52 weeks ({start} to {end})",
+        "full_scan_option_monthly": "Monthly — past 36 months ({start} to {end})",
         "full_scan_button": ":material/rocket_launch: Scan All {count} Pre-Screened Stocks",
         "full_scan_pdf_button": ":material/download: Download Full Report (PDF)",
         "weekly_full_scan_progress": "Scanning {done}/{total} — {ticker}",
@@ -161,6 +165,7 @@ TXT = {
         "interval_label": "图表类型",
         "daily": "每日",
         "weekly": "每周",
+        "monthly": "每月",
         "loading": "正在获取数据...",
         "error_no_data": "找不到该股票代码的数据，请检查拼写后重试。",
         "price": "价格",
@@ -251,7 +256,10 @@ TXT = {
         "weekly_download_button": ":material/download: 下载结果（CSV）",
         "full_scan_title": "全市场扫描（预筛选列表）",
         "full_scan_desc": "对已通过规模筛选（市值 ≥ 16亿美元，流通股 ≥ 4亿股）的全部 {count} 支股票运行扫描 — 无需手动输入。此过程需要几分钟。",
-        "full_scan_interval_label": "K线周期",
+        "full_scan_interval_label": "K线周期与回溯范围",
+        "full_scan_option_daily": "每日 — 过去12个月（{start} 至 {end}）",
+        "full_scan_option_weekly": "每周 — 过去52周（{start} 至 {end}）",
+        "full_scan_option_monthly": "每月 — 过去36个月（{start} 至 {end}）",
         "full_scan_button": ":material/rocket_launch: 扫描全部 {count} 支预筛选股票",
         "full_scan_pdf_button": ":material/download: 下载完整报告（PDF）",
         "weekly_full_scan_progress": "正在扫描 {done}/{total} — {ticker}",
@@ -700,19 +708,35 @@ MIN_MARKET_CAP = 1.6e9   # $1.6 billion
 MIN_FLOAT_SHARES = 4.0e8  # 400 million shares
 
 
+# Lookback window per interval, in calendar days back from today. Monthly
+# needs much more calendar time than daily/weekly to accumulate the same
+# number of bars for the 12/14/20-period rolling calculations.
+INTERVAL_LOOKBACK_DAYS = {"1d": 365, "1wk": 364, "1mo": 1095}
+
+
+def interval_lookback_range(interval: str):
+    """(start, end) datetimes for the given interval's lookback window --
+    the single source of truth used both to fetch data and to label the
+    interval dropdown, so the displayed range always matches what's
+    actually fetched."""
+    end = datetime.now()
+    start = end - pd.Timedelta(days=INTERVAL_LOOKBACK_DAYS[interval])
+    return start, end
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def compute_weekly_pattern(
     ticker_symbol: str, market_cap: float = 0.0, float_shares: float = 0.0, interval: str = "1wk"
 ) -> dict:
     """Technical pattern check only -- no fundamentals fetch. Works on
-    either weekly ("1wk") or daily ("1d") candles; the same 12/14/20-period
-    rule set just means 12/14/20 weeks or days depending on interval. Pass
-    market_cap/float_shares through if already known (e.g. from the
-    pre-screened universe) so they ride along in the result without an
-    extra API call."""
+    daily ("1d"), weekly ("1wk"), or monthly ("1mo") candles; the same
+    12/14/20-period rule set just means 12/14/20 days/weeks/months
+    depending on interval. Pass market_cap/float_shares through if
+    already known (e.g. from the pre-screened universe) so they ride
+    along in the result without an extra API call."""
     try:
-        period = "2y" if interval == "1wk" else "1y"
-        df = yf.Ticker(ticker_symbol).history(period=period, interval=interval)
+        start, end = interval_lookback_range(interval)
+        df = yf.Ticker(ticker_symbol).history(start=start, end=end, interval=interval)
         if df.empty:
             return {"ok": False, "ticker": ticker_symbol, "error_key": "err_insufficient_data"}
 
@@ -723,11 +747,14 @@ def compute_weekly_pattern(
         # and keeps updating live until that period actually closes -- on
         # a Monday, a "weekly" bar is really just that one day's OHLCV
         # masquerading as a full week (same idea for "today" on daily
-        # candles during market hours). Drop it so every calculation below
-        # only sees fully completed periods.
+        # candles during market hours, or "this month" on monthly ones).
+        # Drop it so every calculation below only sees fully completed
+        # periods.
         now_local = pd.Timestamp.now(tz=df.index.tz)
         if interval == "1wk":
             is_current_period = df.index[-1].isocalendar()[:2] == now_local.isocalendar()[:2]
+        elif interval == "1mo":
+            is_current_period = (df.index[-1].year, df.index[-1].month) == (now_local.year, now_local.month)
         else:
             is_current_period = df.index[-1].date() == now_local.date()
         if is_current_period:
@@ -905,8 +932,11 @@ def render_sell_card(r: dict, L: dict):
         box(f"**{title}**\n\n{detail}")
 
 
+INTERVAL_PERIOD_KEY = {"1d": "daily", "1wk": "weekly", "1mo": "monthly"}
+
+
 def format_signal_names(signal_keys: list, interval: str, L: dict) -> str:
-    period_word = L["weekly"] if interval == "1wk" else L["daily"]
+    period_word = L[INTERVAL_PERIOD_KEY.get(interval, "weekly")]
     return " | ".join(f"{period_word} {L[f'pattern_{k}']}" for k in signal_keys)
 
 
@@ -957,13 +987,16 @@ PDF_PATTERN_NAMES = {
 }
 
 
+PDF_PERIOD_WORD = {"1d": "Daily", "1wk": "Weekly", "1mo": "Monthly"}
+
+
 def format_signal_names_pdf(signal_keys: list, interval: str) -> str:
-    period_word = "Weekly" if interval == "1wk" else "Daily"
+    period_word = PDF_PERIOD_WORD.get(interval, "Weekly")
     return ", ".join(f"{period_word} {PDF_PATTERN_NAMES[k]}" for k in signal_keys)
 
 
 def build_weekly_pdf(matched: list, universe_size: int, interval: str = "1wk") -> bytes:
-    period_word = "Weekly" if interval == "1wk" else "Daily"
+    period_word = PDF_PERIOD_WORD.get(interval, "Weekly")
     pdf = FPDF()
     pdf.add_page()
 
@@ -1363,10 +1396,26 @@ else:
     full_universe = load_screened_universe_full()
     st.caption(L["full_scan_desc"].format(count=len(full_universe)))
 
-    full_scan_interval_choice = st.radio(
-        L["full_scan_interval_label"], [L["weekly"], L["daily"]], horizontal=True, key="full_scan_interval"
+    full_scan_interval_options = [
+        ("1d", "full_scan_option_daily"),
+        ("1wk", "full_scan_option_weekly"),
+        ("1mo", "full_scan_option_monthly"),
+    ]
+    full_scan_interval_labels = [
+        L[label_key].format(
+            start=interval_lookback_range(code)[0].strftime("%Y-%m-%d"),
+            end=interval_lookback_range(code)[1].strftime("%Y-%m-%d"),
+        )
+        for code, label_key in full_scan_interval_options
+    ]
+    full_scan_interval_idx = st.selectbox(
+        L["full_scan_interval_label"],
+        options=range(len(full_scan_interval_options)),
+        format_func=lambda i: full_scan_interval_labels[i],
+        index=1,  # default to Weekly
+        key="full_scan_interval",
     )
-    full_scan_interval = "1wk" if full_scan_interval_choice == L["weekly"] else "1d"
+    full_scan_interval = full_scan_interval_options[full_scan_interval_idx][0]
 
     if st.button(L["full_scan_button"].format(count=len(full_universe)), key="full_scan_btn", disabled=not full_universe):
         st.session_state.full_scan_results = run_full_universe_scan(full_universe, L, full_scan_interval)
